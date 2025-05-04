@@ -3,6 +3,7 @@ from utils.response import create_response
 from utils.state import get_invitation_state
 from datetime import datetime
 from adapters.farm_client import get_farm_by_id, get_user_role_farm
+from adapters.user_client import get_role_name_by_id, get_role_permissions_for_user_role
 import pytz
 import logging
 
@@ -25,30 +26,21 @@ def create_invitation(invitation_data, user, db: Session):
     if not urf or urf.user_role_farm_state != "Activo":
         return create_response("error", "No tienes acceso a esta finca", status_code=403)
 
-    # Verificar si el rol sugerido para la invitación es válido
-    suggested_role = db.query(Roles).filter(Roles.name == invitation_data.suggested_role).first()
-    if not suggested_role:
+    # Obtener el nombre del rol sugerido usando el microservicio de usuarios
+    suggested_role_name = get_role_name_by_id(invitation_data.suggested_role_id)
+    if not suggested_role_name:
         return create_response("error", "El rol sugerido no es válido", status_code=400)
 
-    # Verificar si el rol del usuario (invitador) tiene el permiso adecuado para invitar al rol sugerido
-    if suggested_role.name == "Administrador de finca":
-        has_permission_to_invite = db.query(RolePermission).join(Permissions).filter(
-            RolePermission.role_id == urf.role_id,
-            Permissions.name == "add_administrator_farm"
-        ).first()
-        if not has_permission_to_invite:
+    # Validar permisos del usuario invitador usando el microservicio de usuarios
+    inviter_permissions = get_role_permissions_for_user_role(urf.user_role_farm_id)
+    if suggested_role_name == "Administrador de finca":
+        if "add_administrator_farm" not in inviter_permissions:
             return create_response("error", "No tienes permiso para invitar a un Administrador de Finca", status_code=403)
-
-    elif suggested_role.name == "Operador de campo":
-        has_permission_to_invite = db.query(RolePermission).join(Permissions).filter(
-            RolePermission.role_id == urf.role_id,
-            Permissions.name == "add_operator_farm"
-        ).first()
-        if not has_permission_to_invite:
+    elif suggested_role_name == "Operador de campo":
+        if "add_operator_farm" not in inviter_permissions:
             return create_response("error", "No tienes permiso para invitar a un Operador de Campo", status_code=403)
-
     else:
-        return create_response("error", f"No puedes invitar a colaboradores de rol {suggested_role.name} ", status_code=403)
+        return create_response("error", f"No puedes invitar a colaboradores de rol {suggested_role_name} ", status_code=403)
 
     # Verificar si el usuario ya está registrado
     existing_user = db.query(Users).filter(Users.email == invitation_data.email).first()
@@ -88,7 +80,7 @@ def create_invitation(invitation_data, user, db: Session):
         # Crear la nueva invitación
         new_invitation = Invitations(
             email=invitation_data.email,
-            suggested_role_id=suggested_role.role_id,
+            suggested_role_id=invitation_data.suggested_role_id,
             farm_id=invitation_data.farm_id,
             inviter_user_id=user.user_id,
             invitation_date=datetime.now(bogota_tz)
@@ -111,7 +103,7 @@ def create_invitation(invitation_data, user, db: Session):
             return create_response("error", "No se encontró el tipo de notificación 'Invitations'", status_code=400)
 
         new_notification = Notifications(
-            message=f"Has sido invitado como {invitation_data.suggested_role} a la finca {farm.name}",
+            message=f"Has sido invitado como {suggested_role_name} a la finca {farm.name}",
             date=datetime.now(bogota_tz),
             user_id=existing_user.user_id,
             notification_type_id=invitation_notification_type.notification_type_id,
@@ -125,7 +117,7 @@ def create_invitation(invitation_data, user, db: Session):
         # Enviar notificación FCM al usuario
         if fcm_token := existing_user.fcm_token:
             title = "Nueva Invitación"
-            body = f"Has sido invitado como {invitation_data.suggested_role} a la finca {farm.name}"
+            body = f"Has sido invitado como {suggested_role_name} a la finca {farm.name}"
             send_fcm_notification(fcm_token, title, body)
         else:
             logger.warning("No se pudo enviar la notificación push. No se encontró el token FCM del usuario.")
