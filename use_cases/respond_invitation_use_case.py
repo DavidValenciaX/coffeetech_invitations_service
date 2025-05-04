@@ -4,6 +4,7 @@ from models.models import Invitations
 from sqlalchemy.orm import Session
 from datetime import datetime
 import pytz
+from utils.send_notification import send_notification  # Nuevo import
 
 bogota_tz = pytz.timezone("America/Bogota")
 
@@ -69,21 +70,18 @@ def respond_invitation(invitation_id: int, action: str, user, db: Session):
                 return create_response("error", "No se encontró el tipo de notificación 'Invitation_accepted'", status_code=400)
 
             notification_message = f"El usuario {user.name} ha aceptado tu invitación a la finca {invitation.farm.name}."
-            new_notification = Notifications(
+            send_notification(
+                db=db,
                 message=notification_message,
-                date=datetime.now(bogota_tz),
                 user_id=invitation.inviter_user_id,
                 notification_type_id=accepted_notification_type.notification_type_id,
                 invitation_id=invitation.invitation_id,
                 farm_id=invitation.farm_id,
-                notification_state_id=responded_notification_state.notification_state_id
+                notification_state_id=responded_notification_state.notification_state_id,
+                fcm_token=inviter.fcm_token,
+                fcm_title="Invitación aceptada",
+                fcm_body=notification_message
             )
-            db.add(new_notification)
-            db.commit()
-
-            # Enviar notificación FCM al invitador (si tiene token)
-            if inviter.fcm_token:
-                send_fcm_notification(inviter.fcm_token, "Invitación aceptada", notification_message)
 
         return create_response("success", "Has aceptado la invitación exitosamente", status_code=200)
 
@@ -100,21 +98,18 @@ def respond_invitation(invitation_id: int, action: str, user, db: Session):
                 return create_response("error", "No se encontró el tipo de notificación 'invitation_rejected'", status_code=400)
 
             notification_message = f"El usuario {user.name} ha rechazado tu invitación a la finca {invitation.farm.name}."
-            new_notification = Notifications(
+            send_notification(
+                db=db,
                 message=notification_message,
-                date=datetime.now(bogota_tz),
                 user_id=invitation.inviter_user_id,
-                notification_type_id=rejected_notification_type.notification_type_id,  # Usar notification_type_id
+                notification_type_id=rejected_notification_type.notification_type_id,
                 invitation_id=invitation.invitation_id,
                 farm_id=invitation.farm_id,
-                notification_state_id=responded_notification_state.notification_state_id  # Estado "Respondida" del tipo "Notifications"
+                notification_state_id=responded_notification_state.notification_state_id,
+                fcm_token=inviter.fcm_token,
+                fcm_title="Invitación rechazada",
+                fcm_body=notification_message
             )
-            db.add(new_notification)
-            db.commit()
-
-            # Enviar notificación FCM al invitador (si tiene token)
-            if inviter.fcm_token:
-                send_fcm_notification(inviter.fcm_token, "Invitación rechazada", notification_message)
 
         return create_response("success", "Has rechazado la invitación exitosamente", status_code=200)
 

@@ -6,6 +6,7 @@ from adapters.farm_client import get_farm_by_id, get_user_role_farm
 from adapters.user_client import get_role_name_by_id, get_role_permissions_for_user_role, user_verification_by_email
 import pytz
 import logging
+from utils.send_notification import send_notification  # Nuevo import
 
 # Import models as needed
 from models.models import Invitations
@@ -92,25 +93,19 @@ def create_invitation(invitation_data, user, db: Session):
             logger.error("No se encontró el tipo de notificación 'Invitations'")
             return create_response("error", "No se encontró el tipo de notificación 'Invitations'", status_code=400)
 
-        new_notification = Notifications(
+        # Usar la función extraída para enviar la notificación y FCM
+        send_notification(
+            db=db,
             message=f"Has sido invitado como {suggested_role_name} a la finca {farm.name}",
-            date=datetime.now(bogota_tz),
-            user_id=existing_user.user_id,
+            user_id=invited_user.user_id,
             notification_type_id=invitation_notification_type.notification_type_id,
             invitation_id=new_invitation.invitation_id,
             farm_id=invitation_data.farm_id,
-            notification_state_id=notification_pending_state.notification_state_id
+            notification_state_id=notification_pending_state.notification_state_id,
+            fcm_token=invited_user.fcm_token,
+            fcm_title="Nueva Invitación",
+            fcm_body=f"Has sido invitado como {suggested_role_name} a la finca {farm.name}"
         )
-        db.add(new_notification)
-        db.commit()
-
-        # Enviar notificación FCM al usuario
-        if fcm_token := existing_user.fcm_token:
-            title = "Nueva Invitación"
-            body = f"Has sido invitado como {suggested_role_name} a la finca {farm.name}"
-            send_fcm_notification(fcm_token, title, body)
-        else:
-            logger.warning("No se pudo enviar la notificación push. No se encontró el token FCM del usuario.")
     except Exception as e:
         db.rollback()
         logger.error(f"Error creando la invitación: {str(e)}")
