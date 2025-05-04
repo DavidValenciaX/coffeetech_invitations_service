@@ -32,3 +32,25 @@ def get_user_devices_by_user_id(user_id):
     resp = requests.get(f"{NOTIFICATIONS_SERVICE_URL}/user-devices/{user_id}")
     resp.raise_for_status()
     return resp.json()
+
+def update_notification_state(notification_id, notification_state_id):
+    """
+    Actualiza el estado de una notificación en el microservicio de notificaciones.
+    """
+    resp = requests.patch(
+        f"{NOTIFICATIONS_SERVICE_URL}/notifications/{notification_id}/state",
+        json={"notification_state_id": notification_state_id}
+    )
+    resp.raise_for_status()
+    return resp.json()
+
+def get_notification_id_by_invitation_id(invitation_id):
+    """
+    Consulta al microservicio de notificaciones para obtener el notification_id asociado a una invitación.
+    """
+    # Ajusta el endpoint según tu implementación real
+    resp = requests.get(f"{NOTIFICATIONS_SERVICE_URL}/notifications/by-invitation/{invitation_id}")
+    resp.raise_for_status()
+    data = resp.json()
+    # Suponiendo que retorna {"notification_id": ...}
+    return data.get("notification_id")
