@@ -1,5 +1,6 @@
 from fastapi import FastAPI
 from endpoints import invitations
+from utils.logger import setup_logger
 
 import logging
 
