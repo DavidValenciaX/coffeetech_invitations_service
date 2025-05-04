@@ -74,3 +74,19 @@ def create_user_role_farm(user_role_id: int, farm_id: int, user_role_farm_state_
     except Exception as e:
         logger.error(f"Error al crear user_role_farm: {e}")
         return {"status": "error", "message": f"Error al crear user_role_farm: {str(e)}"}
+
+def get_user_role_farm_state_by_name(state_name: str):
+    """
+    Consulta el estado de UserRoleFarm por nombre en el servicio de fincas.
+    """
+    url = f"{FARM_SERVICE_URL}/farms-service/get-user-role-farm-state/{state_name}"
+    try:
+        response = requests.get(url)
+        response.raise_for_status()
+        data = response.json()
+        if "status" in data and data["status"] == "error":
+            return None
+        return data
+    except Exception as e:
+        logger.error(f"Error al consultar user_role_farm_state: {e}")
+        return None

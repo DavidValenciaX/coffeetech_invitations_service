@@ -5,7 +5,7 @@ from sqlalchemy.orm import Session
 import pytz
 from utils.send_notification import send_notification
 # Adapters para microservicios
-from adapters.farm_client import get_farm_by_id, get_user_role_farm, create_user_role_farm
+from adapters.farm_client import get_farm_by_id, get_user_role_farm, create_user_role_farm, get_user_role_farm_state_by_name
 from adapters.user_client import get_role_name_by_id, user_verification_by_email, create_user_role, get_user_role_ids
 from adapters.notification_client import (
     get_notification_state_by_name,
@@ -63,26 +63,27 @@ def respond_invitation(invitation_id: int, action: str, user, db: Session):
         invitation.invitation_state_id = accepted_invitation_state.invitation_state_id
         db.commit()
 
-        # Crear la relación user-role-farm usando el microservicio de usuarios
+        # Crear la relación user-role-farm usando los microservicios
         suggested_role_name = get_role_name_by_id(invitation.suggested_role_id)
         if not suggested_role_name:
             return create_response("error", "El rol sugerido no es válido", status_code=400)
         try:
-            # Crea el user_role en el microservicio de usuarios
-            create_user_role(user.user_id, suggested_role_name)
-            
-            # Agregar al usuario a la finca en la tabla UserRoleFarm con el rol de la invitación
-            new_user_role_farm = UserRoleFarm(
-                user_id=user.user_id,
-                farm_id=invitation.farm_id,
-                role_id=suggested_role.role_id,  # Asignar el rol sugerido
-                user_role_farm_state_id=urf_active_state.user_role_farm_state_id  # Estado "Activo" del tipo "user_role_farm"
-            )
-            db.add(new_user_role_farm)
-            db.commit()
-            
-            # Para asociar a la finca, debería haber un endpoint en el microservicio de fincas para crear la relación user_role_farm.
-            # Si no existe, debes implementarlo en el microservicio de fincas.
+            # Crea el user_role en el microservicio de usuarios y obtiene el user_role_id
+            user_role_response = create_user_role(user.user_id, suggested_role_name)
+            user_role_id = user_role_response.get("user_role_id")
+            if not user_role_id:
+                return create_response("error", "No se pudo obtener el user_role_id", status_code=500)
+
+            # Obtener el estado "Activo" para UserRoleFarm desde el microservicio de fincas
+            urf_active_state = get_user_role_farm_state_by_name("Activo")
+            if not urf_active_state or not urf_active_state.get("user_role_farm_state_id"):
+                return create_response("error", "No se pudo obtener el estado 'Activo' para UserRoleFarm", status_code=500)
+            urf_active_state_id = urf_active_state["user_role_farm_state_id"]
+
+            # Crear la relación UserRoleFarm en el microservicio de fincas
+            urf_response = create_user_role_farm(user_role_id, invitation.farm_id, urf_active_state_id)
+            if not urf_response or urf_response.get("status") != "success":
+                return create_response("error", f"No se pudo asociar el usuario a la finca: {urf_response}", status_code=500)
         except Exception as e:
             return create_response("error", f"No se pudo asociar el usuario a la finca: {str(e)}", status_code=500)
 
