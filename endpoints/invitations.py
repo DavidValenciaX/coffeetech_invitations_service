@@ -7,7 +7,7 @@ import logging
 from utils.FCM import send_fcm_notification
 from models.models import Invitations
 from utils.response import create_response, session_token_invalid_response
-from utils.state import get_state
+from utils.state import get_invitation_state
 import pytz
 from datetime import datetime
 
@@ -112,7 +112,7 @@ def create_invitation(invitation_data: InvitationCreate, session_token: str, db:
         return create_response("error", "El usuario ya está asociado a la finca con un estado activo", status_code=400)
 
     # Verificar si el usuario ya tiene una invitación pendiente
-    invitation_pending_state = get_state(db, "Pendiente", "Invitations")
+    invitation_pending_state = get_invitation_state(db, "Pendiente")
     if not invitation_pending_state:
         return create_response("error", "El estado 'Pendiente' no fue encontrado para 'Invitations'", status_code=400)
 
@@ -208,9 +208,9 @@ def respond_invitation(invitation_id: int, action: str, session_token: str, db: 
     if user.email != invitation.email:
         return create_response("error", "No tienes permiso para responder esta invitación", status_code=403)
 
-    # Usar get_state para obtener los estados "Aceptada" y "Rechazada" del tipo "Invitations"
-    accepted_invitation_state = get_state(db, "Aceptada", "Invitations")
-    rejected_invitation_state = get_state(db, "Rechazada", "Invitations")
+    # Usar get_invitation_state para obtener los estados "Aceptada" y "Rechazada"
+    accepted_invitation_state = get_invitation_state(db, "Aceptada")
+    rejected_invitation_state = get_invitation_state(db, "Rechazada")
     responded_notification_state = get_state(db, "Respondida", "Notifications")  # Obtener el estado "Respondida"
 
     if not accepted_invitation_state or not rejected_invitation_state or not responded_notification_state:

@@ -4,24 +4,19 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-def get_state(db: Session, state_name: str, entity_type: str):
+def get_invitation_state(db: Session, state_name: str):
     """
-    Obtiene el estado para diferentes entidades.
-    
+    Obtiene el estado para las invitaciones.
+
     Args:
         db (Session): Sesión de la base de datos.
-        state_name (str): Nombre del estado a obtener (e.g., "Activo", "Inactivo").
-        entity_type (str): Tipo de entidad (e.g., "Farms", "Users", "Plots").
-        
+        state_name (str): Nombre del estado a obtener (e.g., "Pendiente", "Aceptada", "Rechazada").
+
     Returns:
-        El objeto de estado si se encuentra, None en caso contrario.
+        El objeto InvitationStates si se encuentra, None en caso contrario.
     """
     try:
-        if entity_type.lower() == "invitations":
-            return db.query(InvitationStates).filter(InvitationStates.name == state_name).first()
-        else:
-            logger.error(f"Tipo de entidad desconocido: {entity_type}")
-            return None
+        return db.query(InvitationStates).filter(InvitationStates.name == state_name).first()
     except Exception as e:
-        logger.error(f"Error al obtener el estado '{state_name}' para '{entity_type}': {str(e)}")
+        logger.error(f"Error al obtener el estado de invitación '{state_name}': {str(e)}")
         return None
