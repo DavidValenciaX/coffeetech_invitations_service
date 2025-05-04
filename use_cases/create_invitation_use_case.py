@@ -15,7 +15,6 @@ bogota_tz = pytz.timezone("America/Bogota")
 logger = logging.getLogger(__name__)
 
 def create_invitation(invitation_data, user, db: Session):
-    
     # Verificar si la finca existe
     farm = get_farm_by_id(invitation_data.farm_id)
     if not farm:
@@ -32,7 +31,7 @@ def create_invitation(invitation_data, user, db: Session):
         return create_response("error", "El rol sugerido no es válido", status_code=400)
 
     # Validar permisos del usuario invitador usando el microservicio de usuarios
-    inviter_permissions = get_role_permissions_for_user_role(urf.user_role_farm_id)
+    inviter_permissions = get_role_permissions_for_user_role(urf.user_role_id)
     if suggested_role_name == "Administrador de finca":
         if "add_administrator_farm" not in inviter_permissions:
             return create_response("error", "No tienes permiso para invitar a un Administrador de Finca", status_code=403)
@@ -47,18 +46,9 @@ def create_invitation(invitation_data, user, db: Session):
     if not invited_user:
         return create_response("error", "El usuario no está registrado", status_code=404)
 
-    # Verificar si el usuario ya pertenece a la finca
-    urf_active_state = get_state(db, "Activo", "user_role_farm")
-    if not urf_active_state:
-        return create_response("error", "El estado 'Activo' no fue encontrado para 'user_role_farm'", status_code=400)
-
-    existing_role_farm = db.query(UserRoleFarm).filter(
-        UserRoleFarm.user_id == invited_user.user_id,
-        UserRoleFarm.farm_id == invitation_data.farm_id,
-        UserRoleFarm.user_role_farm_state_id == urf_active_state.user_role_farm_state_id
-    ).first()
-
-    if existing_role_farm:
+    # Verificar si el usuario ya pertenece a la finca (consultando el microservicio de fincas)
+    urf_invited = get_user_role_farm(invited_user.user_id, invitation_data.farm_id)
+    if urf_invited and urf_invited.user_role_farm_state == "Activo":
         return create_response("error", "El usuario ya está asociado a la finca con un estado activo", status_code=400)
 
     # Verificar si el usuario ya tiene una invitación pendiente
