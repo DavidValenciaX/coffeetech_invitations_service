@@ -3,7 +3,7 @@ from utils.response import create_response
 from utils.state import get_invitation_state
 from datetime import datetime
 from adapters.farm_client import get_farm_by_id, get_user_role_farm
-from adapters.user_client import get_role_name_by_id, get_role_permissions_for_user_role
+from adapters.user_client import get_role_name_by_id, get_role_permissions_for_user_role, user_verification_by_email
 import pytz
 import logging
 
@@ -42,9 +42,9 @@ def create_invitation(invitation_data, user, db: Session):
     else:
         return create_response("error", f"No puedes invitar a colaboradores de rol {suggested_role_name} ", status_code=403)
 
-    # Verificar si el usuario ya está registrado
-    existing_user = db.query(Users).filter(Users.email == invitation_data.email).first()
-    if not existing_user:
+    # Verificar si el usuario ya está registrado usando el microservicio de usuarios
+    invited_user = user_verification_by_email(invitation_data.email)
+    if not invited_user:
         return create_response("error", "El usuario no está registrado", status_code=404)
 
     # Verificar si el usuario ya pertenece a la finca
@@ -53,7 +53,7 @@ def create_invitation(invitation_data, user, db: Session):
         return create_response("error", "El estado 'Activo' no fue encontrado para 'user_role_farm'", status_code=400)
 
     existing_role_farm = db.query(UserRoleFarm).filter(
-        UserRoleFarm.user_id == existing_user.user_id,
+        UserRoleFarm.user_id == invited_user.user_id,
         UserRoleFarm.farm_id == invitation_data.farm_id,
         UserRoleFarm.user_role_farm_state_id == urf_active_state.user_role_farm_state_id
     ).first()
