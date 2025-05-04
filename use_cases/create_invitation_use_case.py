@@ -7,6 +7,7 @@ from adapters.user_client import get_role_name_by_id, get_role_permissions_for_u
 import pytz
 import logging
 from utils.send_notification import send_notification  # Nuevo import
+from adapters.notification_client import get_notification_state_by_name, get_notification_type_by_name
 
 # Import models as needed
 from models.models import Invitations
@@ -80,14 +81,14 @@ def create_invitation(invitation_data, user, db: Session):
         db.commit()
         db.refresh(new_invitation)
 
-        # Crear la notificación asociada con notification_type_id
-        notification_pending_state = get_state(db, "Pendiente", "Notifications")
+        # Obtener estado y tipo de notificación desde el microservicio de notificaciones
+        notification_pending_state = get_notification_state_by_name("Pendiente")
         if not notification_pending_state:
             db.rollback()
             logger.error("El estado 'Pendiente' no fue encontrado para 'Notifications'")
             return create_response("error", "El estado 'Pendiente' no fue encontrado para 'Notifications'", status_code=400)
 
-        invitation_notification_type = db.query(NotificationTypes).filter(NotificationTypes.name == "Invitations").first()
+        invitation_notification_type = get_notification_type_by_name("Invitations")
         if not invitation_notification_type:
             db.rollback()
             logger.error("No se encontró el tipo de notificación 'Invitations'")
@@ -98,10 +99,10 @@ def create_invitation(invitation_data, user, db: Session):
             db=db,
             message=f"Has sido invitado como {suggested_role_name} a la finca {farm.name}",
             user_id=invited_user.user_id,
-            notification_type_id=invitation_notification_type.notification_type_id,
+            notification_type_id=invitation_notification_type["notification_type_id"],
             invitation_id=new_invitation.invitation_id,
             farm_id=invitation_data.farm_id,
-            notification_state_id=notification_pending_state.notification_state_id,
+            notification_state_id=notification_pending_state["notification_state_id"],
             fcm_token=invited_user.fcm_token,
             fcm_title="Nueva Invitación",
             fcm_body=f"Has sido invitado como {suggested_role_name} a la finca {farm.name}"
