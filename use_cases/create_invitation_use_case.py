@@ -2,7 +2,7 @@ from sqlalchemy.orm import Session
 from utils.response import create_response
 from utils.state import get_invitation_state
 from datetime import datetime
-from adapters.farm_client import get_farm_by_id
+from adapters.farm_client import get_farm_by_id, get_user_role_farm
 import pytz
 import logging
 
@@ -20,18 +20,9 @@ def create_invitation(invitation_data, user, db: Session):
     if not farm:
         return create_response("error", "Finca no encontrada", status_code=404)
 
-    # Verificar si el usuario (invitador) está asociado a la finca y cuál es su rol
-    urf_active_state = get_state(db, "Activo", "user_role_farm")
-    if not urf_active_state:
-        return create_response("error", "El estado 'Activo' no fue encontrado para 'user_role_farm'", status_code=400)
-
-    user_role_farm = db.query(UserRoleFarm).filter(
-        UserRoleFarm.user_id == user.user_id,
-        UserRoleFarm.farm_id == invitation_data.farm_id,
-        UserRoleFarm.user_role_farm_state_id == urf_active_state.user_role_farm_state_id
-    ).first()
-
-    if not user_role_farm:
+    # Obtener user_role_farm y su estado desde el farm service
+    urf = get_user_role_farm(user.user_id, invitation_data.farm_id)
+    if not urf or urf.user_role_farm_state != "Activo":
         return create_response("error", "No tienes acceso a esta finca", status_code=403)
 
     # Verificar si el rol sugerido para la invitación es válido
@@ -42,7 +33,7 @@ def create_invitation(invitation_data, user, db: Session):
     # Verificar si el rol del usuario (invitador) tiene el permiso adecuado para invitar al rol sugerido
     if suggested_role.name == "Administrador de finca":
         has_permission_to_invite = db.query(RolePermission).join(Permissions).filter(
-            RolePermission.role_id == user_role_farm.role_id,
+            RolePermission.role_id == urf.role_id,
             Permissions.name == "add_administrator_farm"
         ).first()
         if not has_permission_to_invite:
@@ -50,7 +41,7 @@ def create_invitation(invitation_data, user, db: Session):
 
     elif suggested_role.name == "Operador de campo":
         has_permission_to_invite = db.query(RolePermission).join(Permissions).filter(
-            RolePermission.role_id == user_role_farm.role_id,
+            RolePermission.role_id == urf.role_id,
             Permissions.name == "add_operator_farm"
         ).first()
         if not has_permission_to_invite:
