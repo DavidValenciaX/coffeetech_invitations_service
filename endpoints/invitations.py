@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends
 from pydantic import BaseModel, EmailStr
 from sqlalchemy.orm import Session
-from utils.security import verify_session_token
+from adapters.user_client import verify_session_token
 from dataBase import get_db_session
 import logging
 from utils.response import session_token_invalid_response
@@ -42,7 +42,7 @@ def create_invitation_endpoint(invitation_data: InvitationCreate, session_token:
         JSONResponse: Respuesta con el resultado de la creación de la invitación.
     """
     # Validar el session_token y obtener el usuario autenticado (el invitador)
-    user = verify_session_token(session_token, db)
+    user = verify_session_token(session_token)
     if not user:
         return session_token_invalid_response()
     
@@ -63,7 +63,7 @@ def respond_invitation_endpoint(invitation_id: int, action: str, session_token: 
     - Un mensaje de éxito o error en función de la acción realizada.
     """
     # Validar el session_token y obtener el usuario autenticado
-    user = verify_session_token(session_token, db)
+    user = verify_session_token(session_token)
     if not user:
         return session_token_invalid_response()
 
