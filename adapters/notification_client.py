@@ -24,3 +24,11 @@ def get_notification_type_by_name(name):
         if t["name"].lower() == name.lower():
             return t
     return None
+
+def get_user_devices_by_user_id(user_id):
+    """
+    Obtiene todos los dispositivos (fcm_token) asociados a un usuario.
+    """
+    resp = requests.get(f"{NOTIFICATIONS_SERVICE_URL}/user-devices/{user_id}")
+    resp.raise_for_status()
+    return resp.json()

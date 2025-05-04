@@ -6,8 +6,8 @@ from adapters.farm_client import get_farm_by_id, get_user_role_farm
 from adapters.user_client import get_role_name_by_id, get_role_permissions_for_user_role, user_verification_by_email
 import pytz
 import logging
-from utils.send_notification import send_notification  # Nuevo import
-from adapters.notification_client import get_notification_state_by_name, get_notification_type_by_name
+from utils.send_notification import send_notification
+from adapters.notification_client import get_notification_state_by_name, get_notification_type_by_name, get_user_devices_by_user_id
 
 # Import models as needed
 from models.models import Invitations
@@ -94,19 +94,25 @@ def create_invitation(invitation_data, user, db: Session):
             logger.error("No se encontró el tipo de notificación 'Invitations'")
             return create_response("error", "No se encontró el tipo de notificación 'Invitations'", status_code=400)
 
-        # Usar la función extraída para enviar la notificación y FCM
-        send_notification(
-            db=db,
-            message=f"Has sido invitado como {suggested_role_name} a la finca {farm.name}",
-            user_id=invited_user.user_id,
-            notification_type_id=invitation_notification_type["notification_type_id"],
-            invitation_id=new_invitation.invitation_id,
-            farm_id=invitation_data.farm_id,
-            notification_state_id=notification_pending_state["notification_state_id"],
-            fcm_token=invited_user.fcm_token,
-            fcm_title="Nueva Invitación",
-            fcm_body=f"Has sido invitado como {suggested_role_name} a la finca {farm.name}"
-        )
+        # Obtener todos los dispositivos del usuario invitado
+        user_devices = get_user_devices_by_user_id(invited_user.user_id)
+        if not user_devices:
+            logger.warning(f"El usuario {invited_user.user_id} no tiene dispositivos registrados para notificaciones.")
+
+        # Enviar la notificación a todos los dispositivos del usuario invitado
+        for device in user_devices or []:
+            send_notification(
+                db=db,
+                message=f"Has sido invitado como {suggested_role_name} a la finca {farm.name}",
+                user_id=invited_user.user_id,
+                notification_type_id=invitation_notification_type["notification_type_id"],
+                invitation_id=new_invitation.invitation_id,
+                farm_id=invitation_data.farm_id,
+                notification_state_id=notification_pending_state["notification_state_id"],
+                fcm_token=device["fcm_token"],
+                fcm_title="Nueva Invitación",
+                fcm_body=f"Has sido invitado como {suggested_role_name} a la finca {farm.name}"
+            )
     except Exception as e:
         db.rollback()
         logger.error(f"Error creando la invitación: {str(e)}")
