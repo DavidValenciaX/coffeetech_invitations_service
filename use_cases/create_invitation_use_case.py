@@ -2,6 +2,7 @@ from sqlalchemy.orm import Session
 from utils.response import create_response
 from utils.state import get_invitation_state
 from datetime import datetime
+from adapters.farm_client import get_farm_by_id
 import pytz
 import logging
 
@@ -9,12 +10,13 @@ import logging
 from models.models import Invitations
 
 bogota_tz = pytz.timezone("America/Bogota")
+
 logger = logging.getLogger(__name__)
 
 def create_invitation(invitation_data, user, db: Session):
     
     # Verificar si la finca existe
-    farm = db.query(Farms).filter(Farms.farm_id == invitation_data.farm_id).first()
+    farm = get_farm_by_id(invitation_data.farm_id)
     if not farm:
         return create_response("error", "Finca no encontrada", status_code=404)
 
