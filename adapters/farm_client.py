@@ -56,3 +56,21 @@ def get_user_role_farm(user_id: int, farm_id: int):
     except Exception as e:
         logger.error(f"Error al consultar user_role_farm: {e}")
         return None
+
+def create_user_role_farm(user_role_id: int, farm_id: int, user_role_farm_state_id: int):
+    """
+    Crea la relación UserRoleFarm en el servicio de fincas.
+    """
+    url = f"{FARM_SERVICE_URL}/farms-service/create-user-role-farm"
+    payload = {
+        "user_role_id": user_role_id,
+        "farm_id": farm_id,
+        "user_role_farm_state_id": user_role_farm_state_id
+    }
+    try:
+        response = requests.post(url, json=payload)
+        response.raise_for_status()
+        return response.json()
+    except Exception as e:
+        logger.error(f"Error al crear user_role_farm: {e}")
+        return {"status": "error", "message": f"Error al crear user_role_farm: {str(e)}"}
