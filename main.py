@@ -2,8 +2,6 @@ from fastapi import FastAPI
 from endpoints import invitations
 from utils.logger import setup_logger
 
-import logging
-
 # Setup logging for the entire application
 logger = setup_logger()
 logger.info("Starting CoffeeTech Invitations Service")
