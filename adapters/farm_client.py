@@ -1,8 +1,9 @@
 from dotenv import load_dotenv
+from pydantic import BaseModel
 import os
 import logging
 import httpx
-from pydantic import BaseModel
+import time
 
 load_dotenv(override=True, encoding="utf-8")
 
@@ -31,15 +32,24 @@ def get_farm_by_id(farm_id: int):
     Solicita la información de una finca al servicio de farms.
     """
     url = f"{FARMS_SERVICE_URL}/farms-service/get-farm/{farm_id}"
+    start_time = time.monotonic() # Registrar tiempo de inicio
+    logger.info(f"Consultando finca ID {farm_id} en {url}...")
     try:
-        with httpx.Client(timeout=30.0) as client:
+        with httpx.Client(timeout=60.0) as client:
             response = client.get(url)
+            duration = time.monotonic() - start_time # Calcular duración
+            logger.info(f"Consulta a {url} finalizada en {duration:.4f} segundos con estado {response.status_code}")
             response.raise_for_status()
             data = response.json()
             # Si la respuesta es un dict con los campos esperados, parsear con el modelo
             return FarmDetailResponse(**data)
+    except httpx.TimeoutException as e: # Capturar específicamente Timeout
+        duration = time.monotonic() - start_time
+        logger.error(f"Timeout ({e}) al consultar finca {farm_id} en {url} después de {duration:.4f} segundos")
+        return None
     except Exception as e:
-        logger.error(f"Error al consultar la finca: {e}")
+        duration = time.monotonic() - start_time
+        logger.error(f"Error ({type(e).__name__}: {e}) al consultar finca {farm_id} en {url} después de {duration:.4f} segundos")
         return None
 
 def get_user_role_farm(user_id: int, farm_id: int):
