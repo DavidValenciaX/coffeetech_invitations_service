@@ -18,7 +18,7 @@ logger = logging.getLogger(__name__)
 def create_invitation(invitation_data, user, db: Session):
     # Verificar si la finca existe
     farm = get_farm_by_id(invitation_data.farm_id)
-    if not farm:
+    if farm is None:
         return create_response("error", "Finca no encontrada", status_code=404)
 
     # Obtener user_role_farm y su estado desde el farm service

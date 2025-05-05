@@ -98,6 +98,8 @@ def respond_invitation(invitation_id: int, action: str, user, db: Session):
         inviter_devices = get_user_devices_by_user_id(inviter_user_id)
         accepted_notification_type = get_notification_type_by_name("Invitation_accepted")
         farm = get_farm_by_id(invitation.entity_id)
+        if farm is None:
+            return create_response("error", "Finca no encontrada", status_code=404)
         notification_message = f"El usuario {user.name} ha aceptado tu invitación a la finca {farm.name}."
         for device in inviter_devices or []:
             send_notification(
@@ -125,6 +127,8 @@ def respond_invitation(invitation_id: int, action: str, user, db: Session):
         inviter_devices = get_user_devices_by_user_id(inviter_user_id)
         rejected_notification_type = get_notification_type_by_name("invitation_rejected")
         farm = get_farm_by_id(invitation.entity_id)
+        if farm is None:
+            return create_response("error", "Finca no encontrada", status_code=404)
         notification_message = f"El usuario {user.name} ha rechazado tu invitación a la finca {farm.name}."
         for device in inviter_devices or []:
             send_notification(

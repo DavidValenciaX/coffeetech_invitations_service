@@ -40,7 +40,7 @@ def get_farm_by_id(farm_id: int):
             return FarmDetailResponse(**data)
     except Exception as e:
         logger.error(f"Error al consultar la finca: {e}")
-        return {"status": "error", "message": f"Error al consultar la finca: {str(e)}"}
+        return None
 
 def get_user_role_farm(user_id: int, farm_id: int):
     """
