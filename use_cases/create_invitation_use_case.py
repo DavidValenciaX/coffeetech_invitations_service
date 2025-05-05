@@ -6,8 +6,7 @@ from adapters.farm_client import get_farm_by_id, get_user_role_farm
 from adapters.user_client import get_role_name_by_id, get_role_permissions_for_user_role, user_verification_by_email
 import pytz
 import logging
-from utils.send_notification import send_notification
-from adapters.notification_client import get_notification_state_by_name, get_notification_type_by_name, get_user_devices_by_user_id
+from adapters.notification_client import get_notification_state_by_name, get_notification_type_by_name, get_user_devices_by_user_id, send_notification
 
 # Import models as needed
 from models.models import Invitations

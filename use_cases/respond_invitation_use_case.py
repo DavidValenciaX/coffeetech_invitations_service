@@ -3,18 +3,17 @@ from utils.state import get_invitation_state
 from models.models import Invitations
 from sqlalchemy.orm import Session
 import pytz
-from utils.send_notification import send_notification
 # Adapters para microservicios
-from adapters.farm_client import get_farm_by_id, get_user_role_farm, create_user_role_farm, get_user_role_farm_state_by_name
-from adapters.user_client import get_role_name_by_id, user_verification_by_email, create_user_role, get_user_role_ids
+from adapters.farm_client import get_farm_by_id, create_user_role_farm, get_user_role_farm_state_by_name
+from adapters.user_client import get_role_name_by_id, create_user_role
 from adapters.notification_client import (
     get_notification_state_by_name,
     get_notification_type_by_name,
     get_user_devices_by_user_id,
     update_notification_state,
-    get_notification_id_by_invitation_id
+    get_notification_id_by_invitation_id,
+    send_notification
 )
-import requests
 
 bogota_tz = pytz.timezone("America/Bogota")
 
@@ -98,7 +97,7 @@ def respond_invitation(invitation_id: int, action: str, user, db: Session):
                 message=notification_message,
                 user_id=inviter_user_id,
                 notification_type_id=accepted_notification_type["notification_type_id"] if accepted_notification_type else None,
-                entity_type=invitation.invitation_id,
+                entity_type="farm",
                 entity_id=invitation.farm_id,
                 notification_state_id=responded_notification_state["notification_state_id"],
                 fcm_token=device["fcm_token"],
@@ -122,12 +121,11 @@ def respond_invitation(invitation_id: int, action: str, user, db: Session):
         notification_message = f"El usuario {user.name} ha rechazado tu invitación a la finca {farm.name}."
         for device in inviter_devices or []:
             send_notification(
-                db=db,
                 message=notification_message,
                 user_id=inviter_user_id,
                 notification_type_id=rejected_notification_type["notification_type_id"] if rejected_notification_type else None,
-                invitation_id=invitation.invitation_id,
-                farm_id=invitation.farm_id,
+                enntity_type="farm",
+                entity_id=invitation.farm_id,
                 notification_state_id=responded_notification_state["notification_state_id"],
                 fcm_token=device["fcm_token"],
                 fcm_title="Invitación rechazada",
