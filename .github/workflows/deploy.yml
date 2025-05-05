@@ -1,0 +1,53 @@
+name: Deploy to Production Server
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up SSH
+      uses: webfactory/ssh-agent@v0.7.0
+      with:
+        ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
+
+    - name: Setup known hosts
+      run: |
+        mkdir -p ~/.ssh
+        ssh-keyscan -H 173.212.224.226 >> ~/.ssh/known_hosts
+
+    - name: Deploy to production server
+      env:
+        HOST: 173.212.224.226
+        USER: root
+        DEPLOY_PATH: /home/projects/coffeetech_services/coffeetech_invitations_service/
+        IMAGE_NAME: coffeetech-invitations-service
+      run: |
+        echo "Deploying to production server..."
+        # Transfer files to the server
+        rsync -avz --exclude '.git' --exclude '.github' --exclude '__pycache__' ./ $USER@$HOST:$DEPLOY_PATH
+
+        # Connect via SSH to build and restart the Docker container
+        ssh $USER@$HOST << 'EOF'
+          set -e
+          cd /home/projects/coffeetech_services/coffeetech_invitations_service/
+
+          echo "Building Docker image..."
+          docker build -t coffeetech-invitations-service .
+
+          echo "Stopping and removing existing container (if any)..."
+          docker stop coffeetech-invitations-service || true
+          docker rm coffeetech-invitations-service || true
+
+          echo "Starting new container..."
+          docker run -d --add-host=host.docker.internal:host-gateway --name coffeetech-invitations-service --restart always -p 8003:8000 --env-file .env coffeetech-invitations-service
+
+          echo "Deployment completed successfully!"
+        EOF
