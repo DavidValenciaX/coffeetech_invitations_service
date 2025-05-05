@@ -82,6 +82,10 @@ def send_notification(
         "fcm_body": fcm_body
     }
 
-    resp = requests.post(f"{NOTIFICATIONS_SERVICE_URL}/send-notification", json=payload)
-    resp.raise_for_status()
-    return resp.json()
+    try:
+        resp = requests.post(f"{NOTIFICATIONS_SERVICE_URL}/send-notification", json=payload)
+        resp.raise_for_status()
+        return resp.json()
+    except Exception as e:
+        logger.error(f"Error sending notification: {e}")
+        raise
