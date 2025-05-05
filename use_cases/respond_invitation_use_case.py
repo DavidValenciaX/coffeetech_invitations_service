@@ -46,7 +46,7 @@ def respond_invitation(invitation_id: int, action: str, user, db: Session):
         return create_response("error", "La invitación ya ha sido procesada (aceptada o rechazada)", status_code=400)
 
     responded_notification_state = get_notification_state_by_name("Respondida")
-    if responded_notification_state:
+    if not responded_notification_state:
         return create_response("error", "Estado de notificación respondida no encontrado", status_code=500)
 
     # Obtener notification_id desde el microservicio de notificaciones
@@ -67,7 +67,6 @@ def respond_invitation(invitation_id: int, action: str, user, db: Session):
     if action.lower() == "accept":
         # Cambiar el estado de la invitación a "Aceptada"
         invitation.invitation_state_id = accepted_invitation_state.invitation_state_id
-        db.commit()
 
         # Crear la relación user-role-farm usando los microservicios
         suggested_role_name = get_role_name_by_id(invitation.suggested_role_id)
@@ -90,6 +89,7 @@ def respond_invitation(invitation_id: int, action: str, user, db: Session):
             urf_response = create_user_role_farm(user_role_id, invitation.entity_id, urf_active_state_id)
             if not urf_response or urf_response.get("status") != "success":
                 return create_response("error", f"No se pudo asociar el usuario a la finca: {urf_response}", status_code=500)
+            db.commit()
         except Exception as e:
             return create_response("error", f"No se pudo asociar el usuario a la finca: {str(e)}", status_code=500)
 
