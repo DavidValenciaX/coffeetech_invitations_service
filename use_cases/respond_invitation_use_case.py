@@ -35,8 +35,8 @@ def respond_invitation(invitation_id: int, action: str, user, db: Session):
     rejected_invitation_state = get_invitation_state(db, "Rechazada")
 
     if not accepted_invitation_state or not rejected_invitation_state:
-         logger.error("Estados de invitación 'Aceptada' o 'Rechazada' no encontrados.")
-         return create_response("error", "Estados necesarios no encontrados en la base de datos", status_code=500)
+        logger.error("Estados de invitación 'Aceptada' o 'Rechazada' no encontrados.")
+        return create_response("error", "Estados necesarios no encontrados en la base de datos", status_code=500)
 
     # Verificar si la invitación ya fue aceptada o rechazada
     if invitation.invitation_state_id in [
@@ -65,10 +65,7 @@ def respond_invitation(invitation_id: int, action: str, user, db: Session):
 
     # Acción: aceptar invitación
     if action.lower() == "accept":
-        # Cambiar el estado de la invitación a "Aceptada"
-        invitation.invitation_state_id = accepted_invitation_state.invitation_state_id
-
-        # Crear la relación user-role-farm usando los microservicios
+        # Crear la relación user-role-farm usando los microservicios ANTES de cambiar el estado y hacer commit
         suggested_role_name = get_role_name_by_id(invitation.suggested_role_id)
         if not suggested_role_name:
             return create_response("error", "El rol sugerido no es válido", status_code=400)
@@ -89,9 +86,12 @@ def respond_invitation(invitation_id: int, action: str, user, db: Session):
             urf_response = create_user_role_farm(user_role_id, invitation.entity_id, urf_active_state_id)
             if not urf_response or urf_response.get("status") != "success":
                 return create_response("error", f"No se pudo asociar el usuario a la finca: {urf_response}", status_code=500)
-            db.commit()
         except Exception as e:
             return create_response("error", f"No se pudo asociar el usuario a la finca: {str(e)}", status_code=500)
+
+        # Cambiar el estado de la invitación a "Aceptada" y hacer commit SOLO después de que todo lo anterior haya funcionado
+        invitation.invitation_state_id = accepted_invitation_state.invitation_state_id
+        db.commit()
 
         # Notificar al invitador
         inviter_user_id = invitation.inviter_user_id

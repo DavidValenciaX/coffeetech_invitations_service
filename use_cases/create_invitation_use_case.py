@@ -80,17 +80,17 @@ def create_invitation(invitation_data, user, db: Session):
             invitation_state_id=invitation_pending_state.invitation_state_id
         )
         db.add(new_invitation)
+        db.commit()
+        db.refresh(new_invitation)
 
         # Obtener estado y tipo de notificación desde el microservicio de notificaciones
         notification_pending_state = get_notification_state_by_name("Pendiente")
         if not notification_pending_state:
-            db.rollback()
             logger.error("El estado 'Pendiente' no fue encontrado para 'Notifications'")
             return create_response("error", "El estado 'Pendiente' no fue encontrado para 'Notifications'", status_code=400)
 
         invitation_notification_type = get_notification_type_by_name("Invitations")
         if not invitation_notification_type:
-            db.rollback()
             logger.error("No se encontró el tipo de notificación 'Invitations'")
             return create_response("error", "No se encontró el tipo de notificación 'Invitations'", status_code=400)
 
@@ -112,10 +112,6 @@ def create_invitation(invitation_data, user, db: Session):
                 fcm_title="Nueva Invitación",
                 fcm_body=f"Has sido invitado como {suggested_role_name} a la finca {farm.name}"
             )
-            
-        # Commit at the end after all operations succeed
-        db.commit()
-        db.refresh(new_invitation)
     except Exception as e:
         db.rollback()
         logger.error(f"Error creando la invitación: {str(e)}")
