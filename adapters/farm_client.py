@@ -8,7 +8,7 @@ load_dotenv(override=True, encoding="utf-8")
 
 logger = logging.getLogger(__name__)
 
-FARM_SERVICE_URL = os.getenv("FARMS_SERVICE_URL", "http://localhost:8002")
+FARMS_SERVICE_URL = os.getenv("FARMS_SERVICE_URL", "http://localhost:8002")
 
 class FarmDetailResponse(BaseModel):
     farm_id: int
@@ -30,9 +30,9 @@ def get_farm_by_id(farm_id: int):
     """
     Solicita la información de una finca al servicio de farms.
     """
-    url = f"{FARM_SERVICE_URL}/farms-service/get-farm/{farm_id}"
+    url = f"{FARMS_SERVICE_URL}/farms-service/get-farm/{farm_id}"
     try:
-        with httpx.Client() as client:
+        with httpx.Client(timeout=30.0) as client:
             response = client.get(url)
             response.raise_for_status()
             data = response.json()
@@ -46,7 +46,7 @@ def get_user_role_farm(user_id: int, farm_id: int):
     """
     Solicita la relación user_role_farm y su estado al servicio de farms.
     """
-    url = f"{FARM_SERVICE_URL}/farms-service/get-user-role-farm/{user_id}/{farm_id}"
+    url = f"{FARMS_SERVICE_URL}/farms-service/get-user-role-farm/{user_id}/{farm_id}"
     try:
         with httpx.Client() as client:
             response = client.get(url)
@@ -63,7 +63,7 @@ def create_user_role_farm(user_role_id: int, farm_id: int, user_role_farm_state_
     """
     Crea la relación UserRoleFarm en el servicio de fincas.
     """
-    url = f"{FARM_SERVICE_URL}/farms-service/create-user-role-farm"
+    url = f"{FARMS_SERVICE_URL}/farms-service/create-user-role-farm"
     payload = {
         "user_role_id": user_role_id,
         "farm_id": farm_id,
@@ -82,7 +82,7 @@ def get_user_role_farm_state_by_name(state_name: str):
     """
     Consulta el estado de UserRoleFarm por nombre en el servicio de fincas.
     """
-    url = f"{FARM_SERVICE_URL}/farms-service/get-user-role-farm-state/{state_name}"
+    url = f"{FARMS_SERVICE_URL}/farms-service/get-user-role-farm-state/{state_name}"
     try:
         with httpx.Client() as client:
             response = client.get(url)
