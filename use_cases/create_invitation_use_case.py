@@ -58,8 +58,9 @@ def create_invitation(invitation_data, user, db: Session):
         return create_response("error", "El estado 'Pendiente' no fue encontrado para 'Invitations'", status_code=400)
 
     existing_invitation = db.query(Invitations).filter(
-        Invitations.email == invitation_data.email,
-        Invitations.farm_id == invitation_data.farm_id,
+        Invitations.invited_user_id == invited_user.user_id,
+        Invitations.entity_type == "farm",
+        Invitations.entity_id == invitation_data.farm_id,
         Invitations.invitation_state_id == invitation_pending_state.invitation_state_id
     ).first()
 
@@ -70,15 +71,15 @@ def create_invitation(invitation_data, user, db: Session):
     try:
         # Crear la nueva invitación
         new_invitation = Invitations(
-            email=invitation_data.email,
+            invited_user_id=invited_user.user_id,
             suggested_role_id=invitation_data.suggested_role_id,
-            farm_id=invitation_data.farm_id,
+            entity_type="farm",
+            entity_id=invitation_data.farm_id,
             inviter_user_id=user.user_id,
-            invitation_date=datetime.now(bogota_tz)
+            invitation_date=datetime.now(bogota_tz),
+            invitation_state_id=invitation_pending_state.invitation_state_id
         )
         db.add(new_invitation)
-        db.commit()
-        db.refresh(new_invitation)
 
         # Obtener estado y tipo de notificación desde el microservicio de notificaciones
         notification_pending_state = get_notification_state_by_name("Pendiente")
@@ -111,6 +112,10 @@ def create_invitation(invitation_data, user, db: Session):
                 fcm_title="Nueva Invitación",
                 fcm_body=f"Has sido invitado como {suggested_role_name} a la finca {farm.name}"
             )
+            
+        # Commit at the end after all operations succeed
+        db.commit()
+        db.refresh(new_invitation)
     except Exception as e:
         db.rollback()
         logger.error(f"Error creando la invitación: {str(e)}")

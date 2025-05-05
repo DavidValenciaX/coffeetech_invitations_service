@@ -119,7 +119,6 @@ def user_verification_by_email(email: str):
     Consulta el microservicio de usuarios para verificar si existe un usuario con el email dado.
     Retorna el objeto usuario si existe, None si no.
     """
-    from adapters.user_client import _make_request, UserResponse
     response = _make_request("/users-service/user-verification-by-email", method="POST", data={"email": email})
     if response and response.get("status") == "success" and "user" in response.get("data", {}):
         return UserResponse(**response["data"]["user"])
