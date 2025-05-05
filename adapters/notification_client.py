@@ -54,3 +54,34 @@ def get_notification_id_by_invitation_id(invitation_id):
     data = resp.json()
     # Suponiendo que retorna {"notification_id": ...}
     return data.get("notification_id")
+
+def send_notification(
+    message,
+    user_id,
+    notification_type_id,
+    entity_type,
+    entity_id,
+    notification_state_id,
+    fcm_token=None,
+    fcm_title=None,
+    fcm_body=None
+):
+    """
+    Envía una notificación a través del servicio de notificaciones.
+    Para este caso, entity_type es 'farm' y entity_id es farm_id.
+    """
+    payload = {
+        "message": message,
+        "user_id": user_id,
+        "notification_type_id": notification_type_id,
+        "entity_type": entity_type,
+        "entity_id": entity_id,
+        "notification_state_id": notification_state_id,
+        "fcm_token": fcm_token,
+        "fcm_title": fcm_title,
+        "fcm_body": fcm_body
+    }
+
+    resp = requests.post(f"{NOTIFICATIONS_SERVICE_URL}/send-notification", json=payload)
+    resp.raise_for_status()
+    return resp.json()

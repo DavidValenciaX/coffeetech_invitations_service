@@ -95,12 +95,11 @@ def respond_invitation(invitation_id: int, action: str, user, db: Session):
         notification_message = f"El usuario {user.name} ha aceptado tu invitación a la finca {farm.name}."
         for device in inviter_devices or []:
             send_notification(
-                db=db,
                 message=notification_message,
                 user_id=inviter_user_id,
                 notification_type_id=accepted_notification_type["notification_type_id"] if accepted_notification_type else None,
-                invitation_id=invitation.invitation_id,
-                farm_id=invitation.farm_id,
+                entity_type=invitation.invitation_id,
+                entity_id=invitation.farm_id,
                 notification_state_id=responded_notification_state["notification_state_id"],
                 fcm_token=device["fcm_token"],
                 fcm_title="Invitación aceptada",

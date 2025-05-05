@@ -102,12 +102,11 @@ def create_invitation(invitation_data, user, db: Session):
         # Enviar la notificación a todos los dispositivos del usuario invitado
         for device in user_devices or []:
             send_notification(
-                db=db,
                 message=f"Has sido invitado como {suggested_role_name} a la finca {farm.name}",
                 user_id=invited_user.user_id,
                 notification_type_id=invitation_notification_type["notification_type_id"],
-                invitation_id=new_invitation.invitation_id,
-                farm_id=invitation_data.farm_id,
+                entity_type="farm",
+                entity_id=invitation_data.farm_id,
                 notification_state_id=notification_pending_state["notification_state_id"],
                 fcm_token=device["fcm_token"],
                 fcm_title="Nueva Invitación",
