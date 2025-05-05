@@ -6,7 +6,7 @@ import logging
 
 # Setup logging for the entire application
 logger = setup_logger()
-logger = logging.getLogger(__name__)
+logger.info("Starting CoffeeTech Invitations Service")
 
 app = FastAPI()
 
