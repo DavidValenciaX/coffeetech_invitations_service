@@ -54,7 +54,7 @@ To build and run the service with Docker:
 
 ```bash
 docker build -t coffeetech-invitations-service .
-docker run -p 8000:8000 --env-file .env coffeetech-invitations-service
+docker run -p 8003:8000 --env-file .env coffeetech-invitations-service
 ```
 
 This will expose the service at [http://localhost:8003](http://localhost:8003).
