@@ -11,6 +11,16 @@ from adapters.notification_client import get_notification_state_by_name, get_not
 # Import models as needed
 from models.models import Invitations
 
+# === CONSTANTS for role and state names ===
+# Update these if the microservices or DB schema change
+ROLE_ADMIN_FARM = "Administrador de finca"
+ROLE_OPERATOR_FARM = "Operador de campo"
+STATE_ACTIVE = "Activo"
+STATE_PENDING = "Pendiente"
+STATE_INVITATION_ENTITY = "farm"
+NOTIFICATION_TYPE_INVITATION = "Invitations"
+NOTIFICATION_STATE_PENDING = "Pendiente"
+
 bogota_tz = pytz.timezone("America/Bogota")
 
 logger = logging.getLogger(__name__)
@@ -23,7 +33,7 @@ def create_invitation(invitation_data, user, db: Session):
 
     # Obtener user_role_farm y su estado desde el farm service
     urf = get_user_role_farm(user.user_id, invitation_data.farm_id)
-    if not urf or urf.user_role_farm_state != "Activo":
+    if not urf or urf.user_role_farm_state != STATE_ACTIVE:
         return create_response("error", "No tienes acceso a esta finca", status_code=403)
 
     # Obtener el nombre del rol sugerido usando el microservicio de usuarios
@@ -33,10 +43,10 @@ def create_invitation(invitation_data, user, db: Session):
 
     # Validar permisos del usuario invitador usando el microservicio de usuarios
     inviter_permissions = get_role_permissions_for_user_role(urf.user_role_id)
-    if suggested_role_name == "Administrador de finca":
+    if suggested_role_name == ROLE_ADMIN_FARM:
         if "add_administrator_farm" not in inviter_permissions:
             return create_response("error", "No tienes permiso para invitar a un Administrador de Finca", status_code=403)
-    elif suggested_role_name == "Operador de campo":
+    elif suggested_role_name == ROLE_OPERATOR_FARM:
         if "add_operator_farm" not in inviter_permissions:
             return create_response("error", "No tienes permiso para invitar a un Operador de Campo", status_code=403)
     else:
@@ -49,17 +59,17 @@ def create_invitation(invitation_data, user, db: Session):
 
     # Verificar si el usuario ya pertenece a la finca (consultando el microservicio de fincas)
     urf_invited = get_user_role_farm(invited_user.user_id, invitation_data.farm_id)
-    if urf_invited and urf_invited.user_role_farm_state == "Activo":
+    if urf_invited and urf_invited.user_role_farm_state == STATE_ACTIVE:
         return create_response("error", "El usuario ya está asociado a la finca con un estado activo", status_code=400)
 
     # Verificar si el usuario ya tiene una invitación pendiente
-    invitation_pending_state = get_invitation_state(db, "Pendiente")
+    invitation_pending_state = get_invitation_state(db, STATE_PENDING)
     if not invitation_pending_state:
-        return create_response("error", "El estado 'Pendiente' no fue encontrado para 'Invitations'", status_code=400)
+        return create_response("error", f"El estado '{STATE_PENDING}' no fue encontrado para 'Invitations'", status_code=400)
 
     existing_invitation = db.query(Invitations).filter(
         Invitations.invited_user_id == invited_user.user_id,
-        Invitations.entity_type == "farm",
+        Invitations.entity_type == STATE_INVITATION_ENTITY,
         Invitations.entity_id == invitation_data.farm_id,
         Invitations.invitation_state_id == invitation_pending_state.invitation_state_id
     ).first()
@@ -73,7 +83,7 @@ def create_invitation(invitation_data, user, db: Session):
         new_invitation = Invitations(
             invited_user_id=invited_user.user_id,
             suggested_role_id=invitation_data.suggested_role_id,
-            entity_type="farm",
+            entity_type=STATE_INVITATION_ENTITY,
             entity_id=invitation_data.farm_id,
             inviter_user_id=user.user_id,
             invitation_date=datetime.now(bogota_tz),
@@ -84,15 +94,15 @@ def create_invitation(invitation_data, user, db: Session):
         db.refresh(new_invitation)
 
         # Obtener estado y tipo de notificación desde el microservicio de notificaciones
-        notification_pending_state = get_notification_state_by_name("Pendiente")
+        notification_pending_state = get_notification_state_by_name(NOTIFICATION_STATE_PENDING)
         if not notification_pending_state:
-            logger.error("El estado 'Pendiente' no fue encontrado para 'Notifications'")
-            return create_response("error", "El estado 'Pendiente' no fue encontrado para 'Notifications'", status_code=400)
+            logger.error(f"El estado '{NOTIFICATION_STATE_PENDING}' no fue encontrado para 'Notifications'")
+            return create_response("error", f"El estado '{NOTIFICATION_STATE_PENDING}' no fue encontrado para 'Notifications'", status_code=400)
 
-        invitation_notification_type = get_notification_type_by_name("Invitations")
+        invitation_notification_type = get_notification_type_by_name(NOTIFICATION_TYPE_INVITATION)
         if not invitation_notification_type:
-            logger.error("No se encontró el tipo de notificación 'Invitations'")
-            return create_response("error", "No se encontró el tipo de notificación 'Invitations'", status_code=400)
+            logger.error(f"No se encontró el tipo de notificación '{NOTIFICATION_TYPE_INVITATION}'")
+            return create_response("error", f"No se encontró el tipo de notificación '{NOTIFICATION_TYPE_INVITATION}'", status_code=400)
 
         # Obtener todos los dispositivos del usuario invitado
         user_devices = get_user_devices_by_user_id(invited_user.user_id)
@@ -105,7 +115,7 @@ def create_invitation(invitation_data, user, db: Session):
                 message=f"Has sido invitado como {suggested_role_name} a la finca {farm.name}",
                 user_id=invited_user.user_id,
                 notification_type_id=invitation_notification_type["notification_type_id"],
-                entity_type="farm",
+                entity_type=STATE_INVITATION_ENTITY,
                 entity_id=invitation_data.farm_id,
                 notification_state_id=notification_pending_state["notification_state_id"],
                 fcm_token=device["fcm_token"],

@@ -20,6 +20,15 @@ logger = logging.getLogger(__name__)
 
 bogota_tz = pytz.timezone("America/Bogota")
 
+# === CONSTANTS for state and notification type names ===
+# Update these if the microservices or DB schema change
+STATE_ACCEPTED = "Aceptada"
+STATE_REJECTED = "Rechazada"
+STATE_ACTIVE = "Activo"
+NOTIFICATION_STATE_RESPONDED = "Respondida"
+NOTIFICATION_TYPE_ACCEPTED = "Invitation_accepted"
+NOTIFICATION_TYPE_REJECTED = "invitation_rejected"
+
 def respond_invitation(invitation_id: int, action: str, user, db: Session):
     # Buscar la invitación
     invitation = db.query(Invitations).filter(Invitations.invitation_id == invitation_id).first()
@@ -31,8 +40,8 @@ def respond_invitation(invitation_id: int, action: str, user, db: Session):
         return create_response("error", "No tienes permiso para responder esta invitación", status_code=403)
 
     # Obtener estados desde microservicio
-    accepted_invitation_state = get_invitation_state(db, "Aceptada")
-    rejected_invitation_state = get_invitation_state(db, "Rechazada")
+    accepted_invitation_state = get_invitation_state(db, STATE_ACCEPTED)
+    rejected_invitation_state = get_invitation_state(db, STATE_REJECTED)
 
     if not accepted_invitation_state or not rejected_invitation_state:
         logger.error("Estados de invitación 'Aceptada' o 'Rechazada' no encontrados.")
@@ -45,7 +54,7 @@ def respond_invitation(invitation_id: int, action: str, user, db: Session):
     ]:
         return create_response("error", "La invitación ya ha sido procesada (aceptada o rechazada)", status_code=400)
 
-    responded_notification_state = get_notification_state_by_name("Respondida")
+    responded_notification_state = get_notification_state_by_name(NOTIFICATION_STATE_RESPONDED)
     if not responded_notification_state:
         return create_response("error", "Estado de notificación respondida no encontrado", status_code=500)
 
@@ -75,7 +84,7 @@ def respond_invitation(invitation_id: int, action: str, user, db: Session):
                 return create_response("error", "No se pudo obtener el user_role_id", status_code=500)
 
             # Obtener el estado "Activo" para UserRoleFarm desde el microservicio de fincas
-            urf_active_state = get_user_role_farm_state_by_name("Activo")
+            urf_active_state = get_user_role_farm_state_by_name(STATE_ACTIVE)
             if not urf_active_state or not urf_active_state.get("user_role_farm_state_id"):
                 return create_response("error", "No se pudo obtener el estado 'Activo' para UserRoleFarm", status_code=500)
             urf_active_state_id = urf_active_state["user_role_farm_state_id"]
@@ -94,7 +103,7 @@ def respond_invitation(invitation_id: int, action: str, user, db: Session):
         # Notificar al invitador
         inviter_user_id = invitation.inviter_user_id
         inviter_devices = get_user_devices_by_user_id(inviter_user_id)
-        accepted_notification_type = get_notification_type_by_name("Invitation_accepted")
+        accepted_notification_type = get_notification_type_by_name(NOTIFICATION_TYPE_ACCEPTED)
         farm = get_farm_by_id(invitation.entity_id)
         if farm is None:
             return create_response("error", "Finca no encontrada", status_code=404)
@@ -123,7 +132,7 @@ def respond_invitation(invitation_id: int, action: str, user, db: Session):
         # Notificar al invitador
         inviter_user_id = invitation.inviter_user_id
         inviter_devices = get_user_devices_by_user_id(inviter_user_id)
-        rejected_notification_type = get_notification_type_by_name("invitation_rejected")
+        rejected_notification_type = get_notification_type_by_name(NOTIFICATION_TYPE_REJECTED)
         farm = get_farm_by_id(invitation.entity_id)
         if farm is None:
             return create_response("error", "Finca no encontrada", status_code=404)
