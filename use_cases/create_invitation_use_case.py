@@ -7,19 +7,17 @@ from adapters.user_client import get_role_name_by_id, get_role_permissions_for_u
 import pytz
 import logging
 from adapters.notification_client import get_notification_state_by_name, get_notification_type_by_name, get_user_devices_by_user_id, send_notification
-
-# Import models as needed
 from models.models import Invitations
 
-# === CONSTANTS for role and state names ===
-# Update these if the microservices or DB schema change
-ROLE_ADMIN_FARM = "Administrador de finca"
-ROLE_OPERATOR_FARM = "Operador de campo"
-STATE_ACTIVE = "Activo"
-STATE_PENDING = "Pendiente"
-STATE_INVITATION_ENTITY = "farm"
-NOTIFICATION_TYPE_INVITATION = "Invitations"
-NOTIFICATION_STATE_PENDING = "Pendiente"
+from utils.constants import (
+    ROLE_ADMIN_FARM,
+    ROLE_OPERATOR_FARM,
+    STATE_ACTIVE,
+    STATE_PENDING,
+    ENTITY_TYPE_FARM,
+    NOTIFICATION_TYPE_INVITATION,
+    NOTIFICATION_STATE_PENDING
+)
 
 bogota_tz = pytz.timezone("America/Bogota")
 
@@ -69,7 +67,7 @@ def create_invitation(invitation_data, user, db: Session):
 
     existing_invitation = db.query(Invitations).filter(
         Invitations.invited_user_id == invited_user.user_id,
-        Invitations.entity_type == STATE_INVITATION_ENTITY,
+        Invitations.entity_type == ENTITY_TYPE_FARM,
         Invitations.entity_id == invitation_data.farm_id,
         Invitations.invitation_state_id == invitation_pending_state.invitation_state_id
     ).first()
@@ -83,7 +81,7 @@ def create_invitation(invitation_data, user, db: Session):
         new_invitation = Invitations(
             invited_user_id=invited_user.user_id,
             suggested_role_id=invitation_data.suggested_role_id,
-            entity_type=STATE_INVITATION_ENTITY,
+            entity_type=ENTITY_TYPE_FARM,
             entity_id=invitation_data.farm_id,
             inviter_user_id=user.user_id,
             invitation_date=datetime.now(bogota_tz),
@@ -115,7 +113,7 @@ def create_invitation(invitation_data, user, db: Session):
                 message=f"Has sido invitado como {suggested_role_name} a la finca {farm.name}",
                 user_id=invited_user.user_id,
                 notification_type_id=invitation_notification_type["notification_type_id"],
-                entity_type=STATE_INVITATION_ENTITY,
+                entity_type=ENTITY_TYPE_FARM,
                 entity_id=invitation_data.farm_id,
                 notification_state_id=notification_pending_state["notification_state_id"],
                 fcm_token=device["fcm_token"],

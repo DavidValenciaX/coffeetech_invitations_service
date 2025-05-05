@@ -16,18 +16,18 @@ from adapters.notification_client import (
 import pytz
 import logging
 
+from utils.constants import (
+    STATE_ACCEPTED,
+    STATE_REJECTED,
+    STATE_ACTIVE,
+    NOTIFICATION_STATE_RESPONDED,
+    NOTIFICATION_TYPE_ACCEPTED,
+    NOTIFICATION_TYPE_REJECTED
+)
+
 logger = logging.getLogger(__name__)
 
 bogota_tz = pytz.timezone("America/Bogota")
-
-# === CONSTANTS for state and notification type names ===
-# Update these if the microservices or DB schema change
-STATE_ACCEPTED = "Aceptada"
-STATE_REJECTED = "Rechazada"
-STATE_ACTIVE = "Activo"
-NOTIFICATION_STATE_RESPONDED = "Respondida"
-NOTIFICATION_TYPE_ACCEPTED = "Invitation_accepted"
-NOTIFICATION_TYPE_REJECTED = "invitation_rejected"
 
 def respond_invitation(invitation_id: int, action: str, user, db: Session):
     # Buscar la invitación
