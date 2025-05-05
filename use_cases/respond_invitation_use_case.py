@@ -59,8 +59,6 @@ def respond_invitation(invitation_id: int, action: str, user, db: Session):
         update_notification_state(
             notification_id,
             responded_notification_state["notification_state_id"]
-            if isinstance(responded_notification_state, dict)
-            else responded_notification_state.notification_state_id
         )
 
     # Acción: aceptar invitación
