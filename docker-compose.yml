@@ -1,0 +1,19 @@
+version: "3.8"
+
+services:
+  invitations-service:
+    build: .
+    container_name: coffeetech-invitations-service
+    ports:
+      - "8003:8000" # Maps host 8003 to container 8000
+    env_file: .env
+    networks:
+      - common
+    restart: always
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+networks:
+  common:
+    external: true
+    name: coffeetech_network
