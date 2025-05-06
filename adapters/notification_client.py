@@ -84,6 +84,8 @@ def get_notification_id_by_invitation_id(invitation_id):
     try:
         with httpx.Client() as client:
             resp = client.get(f"{NOTIFICATIONS_SERVICE_URL}/notifications/by-invitation/{invitation_id}")
+            print(f"Response: {resp.text}")
+            # Verifica si la respuesta es exitosa
             resp.raise_for_status()
             data = resp.json()
             # Suponiendo que retorna {"notification_id": ...}
@@ -99,7 +101,6 @@ def send_notification(
     message,
     user_id,
     notification_type_id,
-    entity_type,
     entity_id,
     notification_state_id,
     fcm_token=None,
@@ -114,7 +115,6 @@ def send_notification(
         "message": message,
         "user_id": user_id,
         "notification_type_id": notification_type_id,
-        "entity_type": entity_type,
         "entity_id": entity_id,
         "notification_state_id": notification_state_id,
         "fcm_token": fcm_token,

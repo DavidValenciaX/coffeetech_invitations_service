@@ -12,9 +12,6 @@ STATE_REJECTED = "Rechazada"
 STATE_ACTIVE = "Activo"
 STATE_INACTIVE = "Inactivo"
 
-# === Entity Types ===
-ENTITY_TYPE_FARM = "farm"
-
 # === Notification States ===
 NOTIFICATION_STATE_PENDING = "Pendiente"
 NOTIFICATION_STATE_RESPONDED = "Respondida"
