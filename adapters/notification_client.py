@@ -109,7 +109,6 @@ def send_notification(
 ):
     """
     Envía una notificación a través del servicio de notificaciones.
-    Para este caso, entity_type es 'farm' y entity_id es farm_id.
     """
     payload = {
         "message": message,
