@@ -110,7 +110,7 @@ def create_invitation(invitation_data, user, db: Session):
                 message=f"Has sido invitado como {suggested_role_name} a la finca {farm.name}",
                 user_id=invited_user.user_id,
                 notification_type_id=invitation_notification_type["notification_type_id"],
-                entity_id=invitation_data.farm_id,
+                entity_id=new_invitation.invitation_id,
                 notification_state_id=notification_pending_state["notification_state_id"],
                 fcm_token=device["fcm_token"],
                 fcm_title="Nueva Invitación",
