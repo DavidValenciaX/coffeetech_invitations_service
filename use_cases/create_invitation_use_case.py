@@ -2,7 +2,7 @@ from sqlalchemy.orm import Session
 from utils.response import create_response
 from utils.state import get_invitation_state
 from datetime import datetime
-from adapters.farm_client import get_farm_by_id, get_user_role_farm
+from adapters.farm_client import get_farm_by_id, get_user_role_farm, get_user_role_farm_state_by_name
 from adapters.user_client import get_role_name_by_id, get_role_permissions_for_user_role, user_verification_by_email
 import pytz
 import logging
@@ -28,9 +28,15 @@ def create_invitation(invitation_data, user, db: Session):
     if farm is None:
         return create_response("error", "Finca no encontrada", status_code=404)
 
-    # Obtener user_role_farm y su estado desde el farm service
+    # Obtener el estado "Activo" para UserRoleFarm desde el microservicio de fincas
+    urf_active_state = get_user_role_farm_state_by_name(STATE_ACTIVE)
+    if not urf_active_state or not urf_active_state.get("user_role_farm_state_id"):
+        return create_response("error", "No se pudo obtener el estado 'Activo' para UserRoleFarm", status_code=500)
+    urf_active_state_id = urf_active_state["user_role_farm_state_id"]
+
+    # Obtener user_role_farm y su estado desde el farm service usando el estado activo obtenido
     urf = get_user_role_farm(user.user_id, invitation_data.farm_id)
-    if not urf or urf.user_role_farm_state != STATE_ACTIVE:
+    if not urf or getattr(urf, "user_role_farm_state_id", None) != urf_active_state_id:
         return create_response("error", "No tienes acceso a esta finca", status_code=403)
 
     # Obtener el nombre del rol sugerido usando el microservicio de usuarios
@@ -56,7 +62,7 @@ def create_invitation(invitation_data, user, db: Session):
 
     # Verificar si el usuario ya pertenece a la finca (consultando el microservicio de fincas)
     urf_invited = get_user_role_farm(invited_user.user_id, invitation_data.farm_id)
-    if urf_invited and urf_invited.user_role_farm_state == STATE_ACTIVE:
+    if urf_invited and getattr(urf_invited, "user_role_farm_state_id", None) == urf_active_state_id:
         return create_response("error", "El usuario ya está asociado a la finca con un estado activo", status_code=400)
 
     # Verificar si el usuario ya tiene una invitación pendiente
