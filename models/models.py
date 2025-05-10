@@ -13,14 +13,13 @@ class InvitationStates(Base):
 
 class Invitations(Base):
     __tablename__ = 'invitations'
-    __table_args__ = (UniqueConstraint('invited_user_id', 'entity_type', 'entity_id'),)
+    __table_args__ = (UniqueConstraint('invited_user_id', 'farm_id'),)
 
     invitation_id = Column(Integer, primary_key=True)
     invited_user_id = Column(Integer, nullable=False)
     suggested_role_id = Column(Integer, nullable=False)
     invitation_state_id = Column(Integer, ForeignKey('invitation_states.invitation_state_id'), nullable=False)
-    entity_type = Column(String(50), nullable=False)
-    entity_id = Column(Integer, nullable=False)
+    farm_id = Column(Integer, nullable=False)
     inviter_user_id = Column(Integer, nullable=False)
     invitation_date = Column(DateTime(timezone=True), nullable=False)
     

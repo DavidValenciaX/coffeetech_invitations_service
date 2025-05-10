@@ -72,7 +72,7 @@ def create_invitation(invitation_data, user, db: Session):
 
     existing_invitation = db.query(Invitations).filter(
         Invitations.invited_user_id == invited_user.user_id,
-        Invitations.entity_id == invitation_data.farm_id,
+        Invitations.farm_id == invitation_data.farm_id,
         Invitations.invitation_state_id == invitation_pending_state.invitation_state_id
     ).first()
 
@@ -85,8 +85,7 @@ def create_invitation(invitation_data, user, db: Session):
         new_invitation = Invitations(
             invited_user_id=invited_user.user_id,
             suggested_role_id=invitation_data.suggested_role_id,
-            entity_type="farm",
-            entity_id=invitation_data.farm_id,
+            farm_id=invitation_data.farm_id,
             inviter_user_id=user.user_id,
             invitation_date=datetime.now(bogota_tz),
             invitation_state_id=invitation_pending_state.invitation_state_id
