@@ -37,7 +37,7 @@ uv sync
 To run the service in development mode:
 
 ```bash
-uv run fastapi dev
+uv run fastapi dev --port 8003
 ```
 
 ## Running the Service (Production)
@@ -50,14 +50,19 @@ uv run fastapi run
 
 ## Docker Deployment
 
-To build and run the service with Docker:
+To build and run the service with Docker Compose:
 
 ```bash
-docker build -t coffeetech-invitations-service .
-docker run -p 8003:8000 --env-file .env coffeetech-invitations-service
+docker compose up --build -d
 ```
 
-This will expose the service at [http://localhost:8003](http://localhost:8003).
+This will build the image and start the service in detached mode, exposing it at [http://localhost:8003](http://localhost:8003).
+
+To stop the service, run:
+
+```bash
+docker compose down
+```
 
 ## Project Structure
 
@@ -70,6 +75,7 @@ invitations_service/
 ├── pyproject.toml
 ├── .env
 ├── Dockerfile
+├── docker-compose.yml
 └── ...
 ```
 
@@ -77,3 +83,4 @@ invitations_service/
 
 - The Dockerfile uses `uv` for dependency management and runs FastAPI directly.
 - The `.dockerignore` file is used to exclude unnecessary files from the Docker build context.
+- Docker Compose is now the recommended way to build and run the service in development and production.

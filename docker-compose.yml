@@ -5,7 +5,7 @@ services:
     build: .
     container_name: coffeetech-invitations-service
     ports:
-      - "8003:8000" # Maps host 8003 to container 8000
+      - "8003:8000"
     env_file: .env
     networks:
       - common
