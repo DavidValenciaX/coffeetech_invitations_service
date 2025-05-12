@@ -1,5 +1,5 @@
+from domain.schemas import FarmDetailResponse, UserRoleFarmResponse
 from dotenv import load_dotenv
-from pydantic import BaseModel
 import os
 import logging
 import httpx
@@ -10,22 +10,6 @@ load_dotenv(override=True, encoding="utf-8")
 logger = logging.getLogger(__name__)
 
 FARMS_SERVICE_URL = os.getenv("FARMS_SERVICE_URL", "http://localhost:8002")
-
-class FarmDetailResponse(BaseModel):
-    farm_id: int
-    name: str
-    area: float
-    area_unit_id: int
-    area_unit: str
-    farm_state_id: int
-    farm_state: str
-
-class UserRoleFarmResponse(BaseModel):
-    user_role_farm_id: int
-    user_role_id: int
-    farm_id: int
-    user_role_farm_state_id: int
-    user_role_farm_state: str
 
 def get_farm_by_id(farm_id: int):
     """

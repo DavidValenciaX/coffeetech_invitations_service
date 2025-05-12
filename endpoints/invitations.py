@@ -1,32 +1,19 @@
 from fastapi import APIRouter, Depends
-from pydantic import BaseModel, EmailStr
 from sqlalchemy.orm import Session
 from adapters.user_client import verify_session_token
 from dataBase import get_db_session
-import logging
 from utils.response import session_token_invalid_response
-import pytz
 from use_cases.create_invitation_use_case import create_invitation
 from use_cases.respond_invitation_use_case import respond_invitation
+from domain.schemas import InvitationCreate
+import logging
+import pytz
 
 bogota_tz = pytz.timezone("America/Bogota")
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
-
-class InvitationCreate(BaseModel):
-    """
-    Modelo para la creación de una invitación.
-
-    Attributes:
-        email (EmailStr): Dirección de correo electrónico del usuario a invitar.
-        suggested_role_id (int): ID del rol sugerido para el usuario invitado.
-        farm_id (int): Identificador de la finca a la que se invita.
-    """
-    email: EmailStr
-    suggested_role_id: int
-    farm_id: int
 
 @router.post("/create-invitation")
 def create_invitation_endpoint(invitation_data: InvitationCreate, session_token: str, db: Session = Depends(get_db_session)):
