@@ -218,3 +218,18 @@ def delete_user_role(user_role_id: int) -> None:
     )
     if not response or response.get("status") != "success":
         raise Exception(f"No se pudo eliminar el user_role_id {user_role_id}: {response}")
+
+def get_user_devices_by_user_id(user_id: int) -> List[Dict[str, Any]]:
+    """
+    Obtiene todos los dispositivos (fcm_token) asociados a un usuario desde el microservicio de usuarios.
+    
+    Args:
+        user_id (int): ID del usuario
+        
+    Returns:
+        list: Lista de dispositivos asociados al usuario
+    """
+    response = _make_request(f"/users-service/users/{user_id}/devices")
+    if response and response.get("status") == "success":
+        return response.get("data", [])
+    return []

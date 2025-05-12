@@ -4,11 +4,10 @@ from models.models import Invitations
 from sqlalchemy.orm import Session
 # Adapters para microservicios
 from adapters.farm_client import get_farm_by_id, create_user_role_farm, get_user_role_farm_state_by_name
-from adapters.user_client import get_role_name_by_id, create_user_role
+from adapters.user_client import get_role_name_by_id, create_user_role, get_user_devices_by_user_id
 from adapters.notification_client import (
     get_notification_state_by_name,
     get_notification_type_by_name,
-    get_user_devices_by_user_id,
     update_notification_state,
     get_notification_id_by_invitation_id,
     send_notification

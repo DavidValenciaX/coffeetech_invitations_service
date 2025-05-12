@@ -8,6 +8,7 @@ load_dotenv(override=True, encoding="utf-8")
 logger = logging.getLogger(__name__)
 
 NOTIFICATIONS_SERVICE_URL = os.getenv("NOTIFICATIONS_SERVICE_URL", "http://localhost:8001")
+USER_SERVICE_URL = os.getenv("USER_SERVICE_URL", "http://localhost:8000")
 
 def get_notification_state_by_name(name):
     try:
@@ -39,22 +40,6 @@ def get_notification_type_by_name(name):
         raise
     except httpx.HTTPStatusError as exc:
         logger.error(f"HTTP error while getting notification type by name '{name}': {exc.response.status_code} - {exc.response.text}")
-        raise
-
-def get_user_devices_by_user_id(user_id):
-    """
-    Obtiene todos los dispositivos (fcm_token) asociados a un usuario.
-    """
-    try:
-        with httpx.Client() as client:
-            resp = client.get(f"{NOTIFICATIONS_SERVICE_URL}/user-devices/{user_id}")
-            resp.raise_for_status()
-            return resp.json()
-    except httpx.RequestError as exc:
-        logger.error(f"Request error while getting user devices for user_id={user_id}: {exc}")
-        raise
-    except httpx.HTTPStatusError as exc:
-        logger.error(f"HTTP error while getting user devices for user_id={user_id}: {exc.response.status_code} - {exc.response.text}")
         raise
 
 def update_notification_state(notification_id, notification_state_id):

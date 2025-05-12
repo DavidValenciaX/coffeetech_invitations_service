@@ -3,8 +3,8 @@ from utils.response import create_response
 from utils.state import get_invitation_state
 from datetime import datetime
 from adapters.farm_client import get_farm_by_id, get_user_role_farm, get_user_role_farm_state_by_name
-from adapters.user_client import get_role_name_by_id, get_role_permissions_for_user_role, user_verification_by_email
-from adapters.notification_client import get_notification_state_by_name, get_notification_type_by_name, get_user_devices_by_user_id, send_notification
+from adapters.user_client import get_role_name_by_id, get_role_permissions_for_user_role, user_verification_by_email, get_user_devices_by_user_id
+from adapters.notification_client import get_notification_state_by_name, get_notification_type_by_name, send_notification
 from models.models import Invitations
 import pytz
 import logging
