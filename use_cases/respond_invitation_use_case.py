@@ -4,7 +4,7 @@ from models.models import Invitations
 from sqlalchemy.orm import Session
 # Adapters para microservicios
 from adapters.farm_client import get_farm_by_id, create_user_role_farm, get_user_role_farm_state_by_name
-from adapters.user_client import get_role_name_by_id, create_user_role, get_user_devices_by_user_id
+from adapters.user_client import get_role_name_by_id, create_user_role
 from adapters.notification_client import (
     get_notification_state_by_name,
     get_notification_type_by_name,
@@ -106,23 +106,20 @@ def respond_invitation(invitation_id: int, action: str, user, db: Session):
         logger.info(f"Invitación {invitation_id} eliminada después de ser aceptada")
 
         # Notificar al invitador
-        inviter_devices = get_user_devices_by_user_id(inviter_user_id)
         accepted_notification_type = get_notification_type_by_name(NOTIFICATION_TYPE_ACCEPTED)
         farm = get_farm_by_id(farm_id)
         if farm is None:
             return create_response("error", "Finca no encontrada", status_code=404)
         notification_message = f"El usuario {user.name} ha aceptado tu invitación a la finca {farm.name}."
-        for device in inviter_devices or []:
-            send_notification(
-                message=notification_message,
-                user_id=inviter_user_id,
-                notification_type_id=accepted_notification_type["notification_type_id"] if accepted_notification_type else None,
-                invitation_id=invitation_id,
-                notification_state_id=responded_notification_state["notification_state_id"],
-                fcm_token=device["fcm_token"],
-                fcm_title="Invitación aceptada",
-                fcm_body=notification_message,
-            )
+        send_notification(
+            message=notification_message,
+            user_id=inviter_user_id,
+            notification_type_id=accepted_notification_type["notification_type_id"] if accepted_notification_type else None,
+            invitation_id=invitation_id,
+            notification_state_id=responded_notification_state["notification_state_id"],
+            fcm_title="Invitación aceptada",
+            fcm_body=notification_message,
+        )
 
         return create_response("success", "Has aceptado la invitación exitosamente", status_code=200)
 
@@ -134,23 +131,20 @@ def respond_invitation(invitation_id: int, action: str, user, db: Session):
         logger.info(f"Invitación {invitation_id} eliminada después de ser rechazada")
 
         # Notificar al invitador
-        inviter_devices = get_user_devices_by_user_id(inviter_user_id)
         rejected_notification_type = get_notification_type_by_name(NOTIFICATION_TYPE_REJECTED)
         farm = get_farm_by_id(farm_id)
         if farm is None:
             return create_response("error", "Finca no encontrada", status_code=404)
         notification_message = f"El usuario {user.name} ha rechazado tu invitación a la finca {farm.name}."
-        for device in inviter_devices or []:
-            send_notification(
-                message=notification_message,
-                user_id=inviter_user_id,
-                notification_type_id=rejected_notification_type["notification_type_id"] if rejected_notification_type else None,
-                invitation_id=invitation_id,
-                notification_state_id=responded_notification_state["notification_state_id"],
-                fcm_token=device["fcm_token"],
-                fcm_title="Invitación rechazada",
-                fcm_body=notification_message,
-            )
+        send_notification(
+            message=notification_message,
+            user_id=inviter_user_id,
+            notification_type_id=rejected_notification_type["notification_type_id"] if rejected_notification_type else None,
+            invitation_id=invitation_id,
+            notification_state_id=responded_notification_state["notification_state_id"],
+            fcm_title="Invitación rechazada",
+            fcm_body=notification_message,
+        )
 
         return create_response("success", "Has rechazado la invitación exitosamente", status_code=200)
 

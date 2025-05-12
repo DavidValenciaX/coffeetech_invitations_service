@@ -1,4 +1,4 @@
-from typing import Optional, Any, Dict, List, Union
+from typing import Optional, Any, Dict, Union
 from dotenv import load_dotenv
 from domain.schemas import UserResponse
 import httpx
@@ -53,39 +53,6 @@ def _make_request(
     except Exception as e:
         logger.error(f"Exception calling {url}: {str(e)}")
         return None
-
-def get_role_name_for_user_role(user_role_id: int) -> str:
-    """
-    Gets the role name associated with a user_role_id by calling the user service API.
-    
-    Args:
-        user_role_id (int): ID of the UserRole entry
-        
-    Returns:
-        str: The name of the role, or "Unknown" if not found
-    """
-    response = _make_request(f"/users-service/user-role/{user_role_id}")
-    return response.get("role_name", "Unknown") if response else "Unknown"
-
-def get_user_role_ids(user_id: int) -> List[int]:
-    """
-    Retrieves user_role_ids for a user from the users microservice.
-
-    Args:
-        user_id (int): ID of the user
-
-    Returns:
-        list: List of user_role_ids associated with the user
-        
-    Raises:
-        Exception: If the request fails or response is invalid
-    """
-    response = _make_request(f"/users-service/user-role-ids/{user_id}")
-    
-    if response:
-        return response.get("user_role_ids", [])
-    else:
-        raise Exception(f"Error retrieving user_role_ids for user {user_id}")
 
 def verify_session_token(session_token: str) -> Optional[Union[Dict[str, Any], UserResponse]]:
     """
@@ -173,63 +140,3 @@ def get_role_name_by_id(role_id: int) -> Optional[str]:
         return response["role_name"]
     logger.error(f"Could not retrieve role name for role_id {role_id}")
     return None
-
-def update_user_role(user_role_id: int, new_role_id: int) -> None:
-    """
-    Actualiza el rol asociado a un user_role_id en el microservicio de usuarios usando el ID del nuevo rol.
-    Lanza excepción si falla.
-    """
-    response = _make_request(
-        f"/users-service/user-role/{user_role_id}/update-role",
-        method="POST",
-        data={"new_role_id": new_role_id} # Changed from new_role_name
-    )
-    if not response or response.get("status") != "success":
-        # Include response details in the exception message if available
-        error_detail = response.get("message", "Unknown error") if response else "No response"
-        raise Exception(f"No se pudo actualizar el rol del user_role_id {user_role_id} al role_id {new_role_id}: {error_detail}")
-
-def get_collaborators_info(user_role_ids: list) -> list:
-    """
-    Obtiene la información de los colaboradores desde el microservicio de usuarios.
-    Args:
-        user_role_ids (list): Lista de IDs de user_role a consultar.
-    Returns:
-        list: Lista de colaboradores con su información, o lanza una excepción si falla.
-    """
-    response = _make_request(
-        "/users-service/user-role/bulk-info",
-        method="POST",
-        data={"user_role_ids": user_role_ids}
-    )
-    if response and "collaborators" in response:
-        return response["collaborators"]
-    else:
-        raise Exception("No se pudo obtener la información de los colaboradores desde el microservicio de usuarios")
-
-def delete_user_role(user_role_id: int) -> None:
-    """
-    Elimina la relación usuario-rol en el microservicio de usuarios.
-    Lanza excepción si falla.
-    """
-    response = _make_request(
-        f"/users-service/user-role/{user_role_id}/delete",
-        method="POST"
-    )
-    if not response or response.get("status") != "success":
-        raise Exception(f"No se pudo eliminar el user_role_id {user_role_id}: {response}")
-
-def get_user_devices_by_user_id(user_id: int) -> List[Dict[str, Any]]:
-    """
-    Obtiene todos los dispositivos (fcm_token) asociados a un usuario desde el microservicio de usuarios.
-    
-    Args:
-        user_id (int): ID del usuario
-        
-    Returns:
-        list: Lista de dispositivos asociados al usuario
-    """
-    response = _make_request(f"/users-service/users/{user_id}/devices")
-    if response and response.get("status") == "success":
-        return response.get("data", [])
-    return []

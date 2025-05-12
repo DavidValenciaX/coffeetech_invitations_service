@@ -100,11 +100,16 @@ def send_notification(
         "user_id": user_id,
         "notification_type_id": notification_type_id,
         "invitation_id": invitation_id,
-        "notification_state_id": notification_state_id,
-        "fcm_token": fcm_token,
-        "fcm_title": fcm_title,
-        "fcm_body": fcm_body
+        "notification_state_id": notification_state_id
     }
+    
+    # Agregar campos opcionales para FCM solo si están presentes
+    if fcm_title:
+        payload["fcm_title"] = fcm_title
+    if fcm_body:
+        payload["fcm_body"] = fcm_body
+    if fcm_token:
+        payload["fcm_token"] = fcm_token
 
     try:
         with httpx.Client() as client:

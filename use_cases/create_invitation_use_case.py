@@ -3,7 +3,7 @@ from utils.response import create_response
 from utils.state import get_invitation_state
 from datetime import datetime
 from adapters.farm_client import get_farm_by_id, get_user_role_farm, get_user_role_farm_state_by_name
-from adapters.user_client import get_role_name_by_id, get_role_permissions_for_user_role, user_verification_by_email, get_user_devices_by_user_id
+from adapters.user_client import get_role_name_by_id, get_role_permissions_for_user_role, user_verification_by_email
 from adapters.notification_client import get_notification_state_by_name, get_notification_type_by_name, send_notification
 from models.models import Invitations
 import pytz
@@ -113,23 +113,16 @@ def create_invitation(invitation_data, user, db: Session):
             logger.error(f"No se encontró el tipo de notificación '{NOTIFICATION_TYPE_INVITATION}'")
             return create_response("error", f"No se encontró el tipo de notificación '{NOTIFICATION_TYPE_INVITATION}'", status_code=400)
 
-        # Obtener todos los dispositivos del usuario invitado
-        user_devices = get_user_devices_by_user_id(invited_user.user_id)
-        if not user_devices:
-            logger.warning(f"El usuario {invited_user.user_id} no tiene dispositivos registrados para notificaciones.")
-
-        # Enviar la notificación a todos los dispositivos del usuario invitado
-        for device in user_devices or []:
-            send_notification(
-                message=f"Has sido invitado como {suggested_role_name} a la finca {farm.name}",
-                user_id=invited_user.user_id,
-                notification_type_id=invitation_notification_type["notification_type_id"],
-                invitation_id=new_invitation.invitation_id,
-                notification_state_id=notification_pending_state["notification_state_id"],
-                fcm_token=device["fcm_token"],
-                fcm_title="Nueva Invitación",
-                fcm_body=f"Has sido invitado como {suggested_role_name} a la finca {farm.name}"
-            )
+        # Enviar notificación al usuario invitado
+        send_notification(
+            message=f"Has sido invitado como {suggested_role_name} a la finca {farm.name}",
+            user_id=invited_user.user_id,
+            notification_type_id=invitation_notification_type["notification_type_id"],
+            invitation_id=new_invitation.invitation_id,
+            notification_state_id=notification_pending_state["notification_state_id"],
+            fcm_title="Nueva Invitación",
+            fcm_body=f"Has sido invitado como {suggested_role_name} a la finca {farm.name}"
+        )
     except Exception as e:
         db.rollback()
         logger.error(f"Error creando la invitación: {str(e)}")
