@@ -1,6 +1,5 @@
 from sqlalchemy.orm import Session
 from utils.response import create_response
-from utils.state import get_invitation_state
 from datetime import datetime
 from adapters.farm_client import get_farm_by_id, get_user_role_farm, get_user_role_farm_state_by_name
 from adapters.user_client import get_role_name_by_id, get_role_permissions_for_user_role, user_verification_by_email
@@ -13,7 +12,6 @@ from utils.constants import (
     ROLE_ADMIN_FARM,
     ROLE_OPERATOR_FARM,
     STATE_ACTIVE,
-    STATE_PENDING,
     NOTIFICATION_TYPE_INVITATION,
     NOTIFICATION_STATE_PENDING
 )
@@ -65,11 +63,6 @@ def create_invitation(invitation_data, user, db: Session):
     if urf_invited and getattr(urf_invited, "user_role_farm_state_id", None) == urf_active_state_id:
         return create_response("error", "El usuario ya está asociado a la finca con un estado activo", status_code=400)
 
-    # Verificar si el usuario ya tiene una invitación (en cualquier estado)
-    invitation_pending_state = get_invitation_state(db, STATE_PENDING)
-    if not invitation_pending_state:
-        return create_response("error", f"El estado '{STATE_PENDING}' no fue encontrado para 'Invitations'", status_code=400)
-
     existing_invitation = db.query(Invitations).filter(
         Invitations.invited_user_id == invited_user.user_id,
         Invitations.farm_id == invitation_data.farm_id
@@ -78,8 +71,6 @@ def create_invitation(invitation_data, user, db: Session):
     # Crear o actualizar la invitación
     try:
         if existing_invitation:
-            # Actualizar la invitación existente a estado pendiente
-            existing_invitation.invitation_state_id = invitation_pending_state.invitation_state_id
             existing_invitation.invitation_date = datetime.now(bogota_tz)
             existing_invitation.suggested_role_id = invitation_data.suggested_role_id
             existing_invitation.inviter_user_id = user.user_id
@@ -94,8 +85,7 @@ def create_invitation(invitation_data, user, db: Session):
                 suggested_role_id=invitation_data.suggested_role_id,
                 farm_id=invitation_data.farm_id,
                 inviter_user_id=user.user_id,
-                invitation_date=datetime.now(bogota_tz),
-                invitation_state_id=invitation_pending_state.invitation_state_id
+                invitation_date=datetime.now(bogota_tz)
             )
             db.add(new_invitation)
             db.commit()

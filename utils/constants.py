@@ -3,11 +3,6 @@ ROLE_OWNER_FARM = "Propietario"
 ROLE_ADMIN_FARM = "Administrador de finca"
 ROLE_OPERATOR_FARM = "Operador de campo"
 
-# === Invitation States ===
-STATE_PENDING = "Pendiente"
-STATE_ACCEPTED = "Aceptada"
-STATE_REJECTED = "Rechazada"
-
 # === General States ===
 STATE_ACTIVE = "Activo"
 STATE_INACTIVE = "Inactivo"

@@ -1,5 +1,4 @@
 from utils.response import create_response
-from utils.state import get_invitation_state
 from models.models import Invitations
 from sqlalchemy.orm import Session
 # Adapters para microservicios
@@ -16,8 +15,6 @@ import pytz
 import logging
 
 from utils.constants import (
-    STATE_ACCEPTED,
-    STATE_REJECTED,
     STATE_ACTIVE,
     NOTIFICATION_STATE_RESPONDED,
     NOTIFICATION_TYPE_ACCEPTED,
@@ -42,21 +39,6 @@ def respond_invitation(invitation_id: int, action: str, user, db: Session):
     farm_id = invitation.farm_id
     inviter_user_id = invitation.inviter_user_id
     suggested_role_id = invitation.suggested_role_id
-    
-    # Obtener estados desde microservicio (still needed for checking status)
-    accepted_invitation_state = get_invitation_state(db, STATE_ACCEPTED)
-    rejected_invitation_state = get_invitation_state(db, STATE_REJECTED)
-
-    if not accepted_invitation_state or not rejected_invitation_state:
-        logger.error("Estados de invitación 'Aceptada' o 'Rechazada' no encontrados.")
-        return create_response("error", "Estados necesarios no encontrados en la base de datos", status_code=500)
-
-    # Verificar si la invitación ya fue aceptada o rechazada
-    if invitation.invitation_state_id in [
-        accepted_invitation_state.invitation_state_id,
-        rejected_invitation_state.invitation_state_id,
-    ]:
-        return create_response("error", "La invitación ya ha sido procesada (aceptada o rechazada)", status_code=400)
 
     responded_notification_state = get_notification_state_by_name(NOTIFICATION_STATE_RESPONDED)
     if not responded_notification_state:

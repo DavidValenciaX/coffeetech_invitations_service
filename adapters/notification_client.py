@@ -8,7 +8,6 @@ load_dotenv(override=True, encoding="utf-8")
 logger = logging.getLogger(__name__)
 
 NOTIFICATIONS_SERVICE_URL = os.getenv("NOTIFICATIONS_SERVICE_URL", "http://localhost:8001")
-USER_SERVICE_URL = os.getenv("USER_SERVICE_URL", "http://localhost:8000")
 
 def get_notification_state_by_name(name):
     try:

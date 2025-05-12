@@ -37,15 +37,3 @@ class UserRoleFarmResponse(BaseModel):
     farm_id: int
     user_role_farm_state_id: int
     user_role_farm_state: str
-
-class InvitationDetailResponse(BaseModel):
-    """
-    Modelo para la respuesta de detalles de una invitación.
-    """
-    invitation_id: int
-    invited_user_id: int
-    suggested_role_id: int
-    invitation_state_id: int
-    farm_id: int
-    inviter_user_id: int
-    invitation_date: datetime
