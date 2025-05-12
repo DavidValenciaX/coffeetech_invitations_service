@@ -39,7 +39,12 @@ def respond_invitation(invitation_id: int, action: str, user, db: Session):
     if user.user_id != invitation.invited_user_id:
         return create_response("error", "No tienes permiso para responder esta invitación", status_code=403)
 
-    # Obtener estados desde microservicio
+    # Save invitation data needed for notifications before deletion
+    farm_id = invitation.farm_id
+    inviter_user_id = invitation.inviter_user_id
+    suggested_role_id = invitation.suggested_role_id
+    
+    # Obtener estados desde microservicio (still needed for checking status)
     accepted_invitation_state = get_invitation_state(db, STATE_ACCEPTED)
     rejected_invitation_state = get_invitation_state(db, STATE_REJECTED)
 
@@ -72,8 +77,8 @@ def respond_invitation(invitation_id: int, action: str, user, db: Session):
 
     # Acción: aceptar invitación
     if action.lower() == "accept":
-        # Crear la relación user-role-farm usando los microservicios ANTES de cambiar el estado y hacer commit
-        suggested_role_name = get_role_name_by_id(invitation.suggested_role_id)
+        # Crear la relación user-role-farm usando los microservicios ANTES de eliminar la invitación
+        suggested_role_name = get_role_name_by_id(suggested_role_id)
         if not suggested_role_name:
             return create_response("error", "El rol sugerido no es válido", status_code=400)
         try:
@@ -90,21 +95,21 @@ def respond_invitation(invitation_id: int, action: str, user, db: Session):
             urf_active_state_id = urf_active_state["user_role_farm_state_id"]
 
             # Crear la relación UserRoleFarm en el microservicio de fincas
-            urf_response = create_user_role_farm(user_role_id, invitation.farm_id, urf_active_state_id)
+            urf_response = create_user_role_farm(user_role_id, farm_id, urf_active_state_id)
             if not urf_response or urf_response.get("status") != "success":
                 return create_response("error", f"No se pudo asociar el usuario a la finca: {urf_response}", status_code=500)
         except Exception as e:
             return create_response("error", f"No se pudo asociar el usuario a la finca: {str(e)}", status_code=500)
 
-        # Cambiar el estado de la invitación a "Aceptada" y hacer commit SOLO después de que todo lo anterior haya funcionado
-        invitation.invitation_state_id = accepted_invitation_state.invitation_state_id
+        # Eliminar la invitación en lugar de cambiar su estado
+        db.delete(invitation)
         db.commit()
+        logger.info(f"Invitación {invitation_id} eliminada después de ser aceptada")
 
         # Notificar al invitador
-        inviter_user_id = invitation.inviter_user_id
         inviter_devices = get_user_devices_by_user_id(inviter_user_id)
         accepted_notification_type = get_notification_type_by_name(NOTIFICATION_TYPE_ACCEPTED)
-        farm = get_farm_by_id(invitation.farm_id)
+        farm = get_farm_by_id(farm_id)
         if farm is None:
             return create_response("error", "Finca no encontrada", status_code=404)
         notification_message = f"El usuario {user.name} ha aceptado tu invitación a la finca {farm.name}."
@@ -113,7 +118,7 @@ def respond_invitation(invitation_id: int, action: str, user, db: Session):
                 message=notification_message,
                 user_id=inviter_user_id,
                 notification_type_id=accepted_notification_type["notification_type_id"] if accepted_notification_type else None,
-                invitation_id=invitation.invitation_id,
+                invitation_id=invitation_id,
                 notification_state_id=responded_notification_state["notification_state_id"],
                 fcm_token=device["fcm_token"],
                 fcm_title="Invitación aceptada",
@@ -124,15 +129,15 @@ def respond_invitation(invitation_id: int, action: str, user, db: Session):
 
     # Acción: rechazar invitación
     elif action.lower() == "reject":
-        # Cambiar el estado de la invitación a "Rechazada"
-        invitation.invitation_state_id = rejected_invitation_state.invitation_state_id
+        # Eliminar la invitación en lugar de cambiar su estado
+        db.delete(invitation)
         db.commit()
+        logger.info(f"Invitación {invitation_id} eliminada después de ser rechazada")
 
         # Notificar al invitador
-        inviter_user_id = invitation.inviter_user_id
         inviter_devices = get_user_devices_by_user_id(inviter_user_id)
         rejected_notification_type = get_notification_type_by_name(NOTIFICATION_TYPE_REJECTED)
-        farm = get_farm_by_id(invitation.farm_id)
+        farm = get_farm_by_id(farm_id)
         if farm is None:
             return create_response("error", "Finca no encontrada", status_code=404)
         notification_message = f"El usuario {user.name} ha rechazado tu invitación a la finca {farm.name}."
@@ -141,7 +146,7 @@ def respond_invitation(invitation_id: int, action: str, user, db: Session):
                 message=notification_message,
                 user_id=inviter_user_id,
                 notification_type_id=rejected_notification_type["notification_type_id"] if rejected_notification_type else None,
-                invitation_id=invitation.invitation_id,
+                invitation_id=invitation_id,
                 notification_state_id=responded_notification_state["notification_state_id"],
                 fcm_token=device["fcm_token"],
                 fcm_title="Invitación rechazada",

@@ -4,10 +4,10 @@ from utils.state import get_invitation_state
 from datetime import datetime
 from adapters.farm_client import get_farm_by_id, get_user_role_farm, get_user_role_farm_state_by_name
 from adapters.user_client import get_role_name_by_id, get_role_permissions_for_user_role, user_verification_by_email
-import pytz
-import logging
 from adapters.notification_client import get_notification_state_by_name, get_notification_type_by_name, get_user_devices_by_user_id, send_notification
 from models.models import Invitations
+import pytz
+import logging
 
 from utils.constants import (
     ROLE_ADMIN_FARM,
@@ -65,34 +65,42 @@ def create_invitation(invitation_data, user, db: Session):
     if urf_invited and getattr(urf_invited, "user_role_farm_state_id", None) == urf_active_state_id:
         return create_response("error", "El usuario ya está asociado a la finca con un estado activo", status_code=400)
 
-    # Verificar si el usuario ya tiene una invitación pendiente
+    # Verificar si el usuario ya tiene una invitación (en cualquier estado)
     invitation_pending_state = get_invitation_state(db, STATE_PENDING)
     if not invitation_pending_state:
         return create_response("error", f"El estado '{STATE_PENDING}' no fue encontrado para 'Invitations'", status_code=400)
 
     existing_invitation = db.query(Invitations).filter(
         Invitations.invited_user_id == invited_user.user_id,
-        Invitations.farm_id == invitation_data.farm_id,
-        Invitations.invitation_state_id == invitation_pending_state.invitation_state_id
+        Invitations.farm_id == invitation_data.farm_id
     ).first()
 
-    if existing_invitation:
-        return create_response("error", "El usuario ya tiene una invitación pendiente para esta finca", status_code=400)
-
-    # Crear la invitación y la notificación solo después de todas las verificaciones
+    # Crear o actualizar la invitación
     try:
-        # Crear la nueva invitación
-        new_invitation = Invitations(
-            invited_user_id=invited_user.user_id,
-            suggested_role_id=invitation_data.suggested_role_id,
-            farm_id=invitation_data.farm_id,
-            inviter_user_id=user.user_id,
-            invitation_date=datetime.now(bogota_tz),
-            invitation_state_id=invitation_pending_state.invitation_state_id
-        )
-        db.add(new_invitation)
-        db.commit()
-        db.refresh(new_invitation)
+        if existing_invitation:
+            # Actualizar la invitación existente a estado pendiente
+            existing_invitation.invitation_state_id = invitation_pending_state.invitation_state_id
+            existing_invitation.invitation_date = datetime.now(bogota_tz)
+            existing_invitation.suggested_role_id = invitation_data.suggested_role_id
+            existing_invitation.inviter_user_id = user.user_id
+            db.commit()
+            db.refresh(existing_invitation)
+            new_invitation = existing_invitation  # Para usar más abajo
+            logger.info(f"Invitación existente actualizada: {existing_invitation.invitation_id}")
+        else:
+            # Crear una nueva invitación
+            new_invitation = Invitations(
+                invited_user_id=invited_user.user_id,
+                suggested_role_id=invitation_data.suggested_role_id,
+                farm_id=invitation_data.farm_id,
+                inviter_user_id=user.user_id,
+                invitation_date=datetime.now(bogota_tz),
+                invitation_state_id=invitation_pending_state.invitation_state_id
+            )
+            db.add(new_invitation)
+            db.commit()
+            db.refresh(new_invitation)
+            logger.info(f"Nueva invitación creada: {new_invitation.invitation_id}")
 
         # Obtener estado y tipo de notificación desde el microservicio de notificaciones
         notification_pending_state = get_notification_state_by_name(NOTIFICATION_STATE_PENDING)
