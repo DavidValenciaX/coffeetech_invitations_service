@@ -9,7 +9,8 @@ from adapters.notification_client import (
     get_notification_type_by_name,
     update_notification_state,
     get_notification_id_by_invitation_id,
-    send_notification
+    send_notification,
+    delete_notifications_by_invitation_id
 )
 import pytz
 import logging
@@ -44,17 +45,17 @@ def respond_invitation(invitation_id: int, action: str, user, db: Session):
     if not responded_notification_state:
         return create_response("error", "Estado de notificación respondida no encontrado", status_code=500)
 
-    # Obtener notification_id desde el microservicio de notificaciones
+    # Eliminar todas las notificaciones de tipo 'Invitation' asociadas a esta invitación
+    # independientemente de si la acción es aceptar o rechazar.
     try:
-        notification_id = get_notification_id_by_invitation_id(invitation_id)
+        delete_response = delete_notifications_by_invitation_id(invitation_id)
+        if delete_response and delete_response.get("deleted_count", 0) > 0:
+            logger.info(f"Notificaciones de invitación eliminadas para la invitación {invitation_id}.")
+        else:
+            logger.info(f"No se encontraron o no se eliminaron notificaciones de invitación para la invitación {invitation_id}. Respuesta: {delete_response}")
     except Exception as e:
-        notification_id = None
-
-    if notification_id:
-        update_notification_state(
-            notification_id,
-            responded_notification_state["notification_state_id"]
-        )
+        logger.error(f"Error eliminando notificaciones de invitación para la invitación {invitation_id}: {str(e)}")
+        # Decidir si continuar o devolver un error. Por ahora, continuamos ya que la acción sobre la invitación es prioritaria.
 
     # Acción: aceptar invitación
     if action.lower() == "accept":

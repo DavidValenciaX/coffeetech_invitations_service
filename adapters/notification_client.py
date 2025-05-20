@@ -81,6 +81,24 @@ def get_notification_id_by_invitation_id(invitation_id):
         logger.error(f"HTTP error while getting notification_id for invitation_id={invitation_id}: {exc.response.status_code} - {exc.response.text}")
         raise
 
+def delete_notifications_by_invitation_id(invitation_id: int):
+    """
+    Llama al microservicio de notificaciones para eliminar todas las notificaciones
+    de tipo 'Invitation' asociadas a un invitation_id.
+    """
+    try:
+        with httpx.Client() as client:
+            resp = client.delete(f"{NOTIFICATIONS_SERVICE_URL}/notifications/by-invitation/{invitation_id}")
+            resp.raise_for_status()
+            logger.info(f"Successfully called delete notifications for invitation_id: {invitation_id}, response: {resp.json()}")
+            return resp.json()
+    except httpx.RequestError as exc:
+        logger.error(f"Request error while deleting notifications for invitation_id={invitation_id}: {exc}")
+        raise
+    except httpx.HTTPStatusError as exc:
+        logger.error(f"HTTP error while deleting notifications for invitation_id={invitation_id}: {exc.response.status_code} - {exc.response.text}")
+        raise
+
 def send_notification(
     message,
     user_id,

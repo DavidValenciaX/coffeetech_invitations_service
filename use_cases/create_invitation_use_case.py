@@ -3,7 +3,7 @@ from utils.response import create_response
 from datetime import datetime
 from adapters.farm_client import get_farm_by_id, get_user_role_farm, get_user_role_farm_state_by_name
 from adapters.user_client import get_role_name_by_id, get_role_permissions_for_user_role, user_verification_by_email
-from adapters.notification_client import get_notification_state_by_name, get_notification_type_by_name, send_notification
+from adapters.notification_client import get_notification_state_by_name, get_notification_type_by_name, send_notification, delete_notifications_by_invitation_id
 from models.models import Invitations
 import pytz
 import logging
@@ -78,6 +78,14 @@ def create_invitation(invitation_data, user, db: Session):
             db.refresh(existing_invitation)
             new_invitation = existing_invitation  # Para usar más abajo
             logger.info(f"Invitación existente actualizada: {existing_invitation.invitation_id}")
+            # Eliminar notificaciones de invitación anteriores para esta invitación actualizada
+            try:
+                delete_notifications_by_invitation_id(new_invitation.invitation_id)
+                logger.info(f"Notificaciones de invitación anteriores eliminadas para la invitación actualizada {new_invitation.invitation_id}")
+            except Exception as e:
+                logger.error(f"Error eliminando notificaciones anteriores para la invitación {new_invitation.invitation_id}: {str(e)}")
+                # Continuar con el flujo incluso si la eliminación de notificaciones falla, 
+                # ya que la creación/actualización de la invitación es más crítica.
         else:
             # Crear una nueva invitación
             new_invitation = Invitations(
