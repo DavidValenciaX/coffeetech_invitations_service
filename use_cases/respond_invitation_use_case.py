@@ -7,8 +7,6 @@ from adapters.user_client import get_role_name_by_id, create_user_role
 from adapters.notification_client import (
     get_notification_state_by_name,
     get_notification_type_by_name,
-    update_notification_state,
-    get_notification_id_by_invitation_id,
     send_notification,
     delete_notifications_by_invitation_id
 )

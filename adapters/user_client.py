@@ -13,6 +13,10 @@ logger = logging.getLogger(__name__)
 USER_SERVICE_URL = os.getenv("USER_SERVICE_URL", "http://localhost:8000")
 DEFAULT_TIMEOUT = 10.0
 
+class UserRoleCreationError(Exception):
+    """Custom exception for errors during user role creation."""
+    pass
+
 def _make_request(
     endpoint: str,
     method: str = "GET",
@@ -108,7 +112,7 @@ def create_user_role(user_id: int, role_name: str) -> dict:
     if response and "user_role_id" in response:
         return response
     else:
-        raise Exception(f"Error creating user_role for user {user_id} with role '{role_name}': {response}")
+        raise UserRoleCreationError(f"Error creating user_role for user {user_id} with role '{role_name}': {response}")
 
 def get_role_permissions_for_user_role(user_role_id: int) -> list:
     """
