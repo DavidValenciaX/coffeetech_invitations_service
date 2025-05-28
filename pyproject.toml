@@ -15,10 +15,32 @@ dependencies = [
     "psycopg2>=2.9.10",
     "psycopg2-binary>=2.9.10",
     "pydantic[email]>=2.11.4",
+    "pytest>=8.3.5",
+    "pytest-cov>=6.1.1",
     "python-dotenv>=1.1.0",
     "python-jose>=3.4.0",
     "python-multipart>=0.0.20",
     "pytz>=2025.2",
     "sqlalchemy>=2.0.40",
     "uvicorn>=0.34.2",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py", "*_test.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+addopts = [
+    "--strict-markers",
+    "--strict-config",
+    "--verbose",
+    "--cov=.",
+    "--cov-report=term-missing",
+    "--cov-report=html",
+    "--cov-report=xml",
+]
+markers = [
+    "slow: marks tests as slow (deselect with '-m \"not slow\"')",
+    "integration: marks tests as integration tests",
+    "unit: marks tests as unit tests",
 ]
