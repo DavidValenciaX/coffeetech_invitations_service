@@ -25,6 +25,13 @@ dependencies = [
     "uvicorn>=0.34.2",
 ]
 
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+packages = ["domain", "endpoints", "models", "use_cases", "utils", "adapters"]
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 pythonpath = ["."]
